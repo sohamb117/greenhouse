@@ -1,3 +1,4 @@
 cask "kitty"
 cask "zed"
 cask "1password"
+cask "orbstack"

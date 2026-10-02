@@ -72,20 +72,26 @@ Shell integration is installed through the managed zsh fragment. Verify `wt conf
 
 mbx is configured through mise's Rust `mr_boxington` option. Use `mise exec -- cargo build` or a mise-activated shell. Calling rustup's Cargo path directly bypasses this integration. Verify `mise which cargo` and `mbx doctor`. Projects that redefine Rust should keep `mr_boxington = true` and include `mr-boxington` in their tools if they want the same behavior. Keep repository-required Rust versions authoritative.
 
-## Colima VM and Docker
+## OrbStack and Docker
 
-Colima and Docker CLI/Compose/Buildx are installed with the core tools, including `--cli-only`. Start the local VM explicitly:
+Full setup installs the OrbStack app. The core Brewfile keeps Docker CLI/Compose/Buildx, so CLI-only setup still has the clients but skips the engine app. Open OrbStack yourself and finish its first-time setup:
 
 ```sh
-colima start --runtime docker
-colima status
+open -a OrbStack
+# After the app reports that the engine is ready:
 docker context ls
-docker --context colima info
-# When you are finished with this VM:
-colima stop
+docker --context orbstack info
+docker --context orbstack compose version
+docker --context orbstack buildx version
+# Optional: make OrbStack the default for subsequent Docker commands.
+docker context use orbstack
 ```
 
-The `colima` Docker context above is for the default profile. Use the corresponding context for a named profile. For larger projects, select CPU/memory/disk sizes appropriate to the Mac using `colima start --help`. Preserve existing profiles, VM disks, volumes and images; installing this package does not migrate or uninstall an existing container engine. This package appends Homebrew's plugin directory to your Docker CLI config without replacing credentials or contexts. It does not pull images, create containers or start a paid resource.
+This stack is intended for personal, non-commercial use of OrbStack. See its [licensing information](https://orbstack.dev/pricing) for the applicable plan. Bootstrap does not activate a paid plan or launch the app.
+
+OrbStack also bundles Docker clients; existing Homebrew clients are preserved. This package appends Homebrew's plugin directory to Docker config without replacing credentials or contexts. OrbStack first launch may select its own context; use an explicit context when multiple engines are installed. Inspect `DOCKER_HOST` and `DOCKER_CONTEXT` overrides if commands reach an unexpected engine. See [Docker integration](https://docs.orbstack.dev/docker/) and [installation](https://docs.orbstack.dev/install).
+
+Existing Colima profiles, disks, images, volumes and containers are preserved. They belong to that engine and are not migrated by bootstrap. If Colima is already running, stop it with `colima stop` only when its workloads can be stopped. Stop OrbStack through its app when appropriate; do not delete engine data to switch backends.
 
 ## Greptile
 
@@ -109,6 +115,6 @@ direnv is installed only with `--extras`. Uncomment the direnv hook in the insta
 
 ## Services and infrastructure
 
-Postgres, SQLite, DuckDB and Valkey native tools are available with `--data-tools`. Alternatively use the project's Docker Compose file through Colima. Choose service versions, ports, credentials and persistence per project; start a native service explicitly only if needed. Caddy and OpenTofu are installed, with no listeners or infrastructure applied.
+Postgres, SQLite, DuckDB and Valkey native tools are available with `--data-tools`. Alternatively use the project's Docker Compose file through OrbStack. Choose service versions, ports, credentials and persistence per project; start a native service explicitly only if needed. Caddy and OpenTofu are installed, with no listeners or infrastructure applied.
 
 S3, turbopuffer, Sentry and hosted Grafana/Prometheus require project/account configuration. OpenTelemetry belongs in application instrumentation; GitHub Actions workflows and OpenTofu state/backend/providers belong in the repo. No managed service is provisioned by this bootstrap.

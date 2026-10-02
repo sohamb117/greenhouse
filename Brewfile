@@ -29,8 +29,7 @@ brew "gopls"
 brew "delve"
 brew "opentofu"
 brew "caddy"
-# Colima supplies the VM/engine; these supply a predictable CLI and plugins.
-brew "colima"
+# OrbStack supplies the engine (Brewfile.apps); keep predictable CLI/plugins.
 brew "docker"
 brew "docker-compose"
 brew "docker-buildx"

@@ -12,7 +12,7 @@ This is a portable starter. Existing repository instructions, lockfiles, CI chec
 
 ## Operating environment
 
-The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. Colima supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
+The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. OrbStack supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
 
 Run from the actual intended checkout/worktree. Inspect `git status`, repository instructions, version files, dependency manifests and CI before editing. If several checkouts could match the task, identify the intended one. Read `mise.toml`, `rust-toolchain.toml`, `.python-version` and lockfiles rather than assuming global versions. Use `mise exec -- COMMAND` or repo mise tasks for background commands; interactive shell hooks are not guaranteed in an agent process.
 
@@ -110,12 +110,12 @@ The bootstrap's mise Rust option enables mbx; a project override should retain `
 | Object storage | S3 |
 | Remote retrieval | turbopuffer |
 | Local code graph | CKG / SQLite |
-| Containers | Colima / Docker Compose |
+| Containers | OrbStack / Docker Compose |
 | Reverse proxy | Caddy |
 | Telemetry / metrics / dashboards / errors | OpenTelemetry / Prometheus / Grafana / Sentry |
 | CI / infrastructure code | GitHub Actions / OpenTofu |
 
-Colima supplies the local Linux VM with Docker. Start it explicitly when needed (`colima start --runtime docker`), inspect `colima status` and `docker context ls`, and select the intended context for Docker commands. Setup installs the VM tooling without starting it; preserve existing VM profiles and never delete VM disks to fix a routine issue.
+OrbStack supplies the local Docker engine and Linux machines. Full setup installs its app; open it explicitly (`open -a OrbStack`) and finish first-time setup before using containers. Inspect `docker context ls` and use `docker --context orbstack ...` for the intended engine; check `docker --context orbstack info` for readiness. CLI-only setup skips the app. Preserve existing engine data, volumes and other VM installations; never delete VM disks to fix a routine issue.
 
 Use the repository's defined service topology, credentials, ports and persistence. Do not start extra global databases to bypass a broken project setup. Keep production and local endpoints distinct. Native data tools are optional in the workstation package; hosted services need account/project access. Read plans and actual provider state before applying infrastructure; obtain the user's required approval for external/paid changes.
 

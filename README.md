@@ -1,6 +1,6 @@
 # Portable macOS developer bootstrap
 
-A reusable setup for Soham's canonical LLM-native engineering stack. `STACK.md` records the canonical stack with the subsequent Colima and `omp-pet` amendments; `docs/STACK-ORIGINAL.md` preserves the full source message from **GPUI Rewrite Scope**. This package installs workstation tools and language tooling; project libraries stay in their language's dependency files.
+A reusable setup for Soham's canonical LLM-native engineering stack. `STACK.md` records the canonical stack with OrbStack and the subsequent `omp-pet` addition; `docs/STACK-ORIGINAL.md` preserves the full source message from **GPUI Rewrite Scope**. This package installs workstation tools and language tooling; project libraries stay in their language's dependency files.
 
 ## On a fresh Mac
 
@@ -12,7 +12,7 @@ cd ~/Documents/code/mac-dev-bootstrap
 ./scripts/bootstrap.sh
 ```
 
-If Apple Command Line Tools are missing, setup opens Apple's installer and stops. Finish that dialog and rerun. The Homebrew installer may ask for your Mac password. Run from a native Apple Silicon terminal on ARM Macs; Intel Macs use `/usr/local`. Use a macOS release supported by the current Homebrew packages and app vendors.
+If Apple Command Line Tools are missing, setup opens Apple's installer and stops. Finish that dialog and rerun. The Homebrew installer may ask for your Mac password. Run from a native Apple Silicon terminal on ARM Macs; Intel Macs use `/usr/local`. Use a macOS release supported by the current Homebrew packages and app vendors; the current OrbStack cask requires macOS 14 or newer.
 
 Open a new terminal after setup, then:
 
@@ -20,24 +20,24 @@ Open a new terminal after setup, then:
 ./scripts/doctor.sh
 ```
 
-Complete [manual setup](docs/MANUAL.md): GitHub login and Git identity, 1Password integration, OMP provider/model selection, starting the Colima VM and showing OMP Pet, and Greptile onboarding in each chosen repository.
+Complete [manual setup](docs/MANUAL.md): GitHub login and Git identity, 1Password integration, OMP provider/model selection, opening OrbStack for first-time setup and showing OMP Pet, and Greptile onboarding in each chosen repository.
 
 ## Options
 
 ```sh
-./scripts/bootstrap.sh --cli-only    # Skip kitty, Zed, 1Password GUI apps and OMP Pet app/plugin
+./scripts/bootstrap.sh --cli-only    # Skip kitty, Zed, 1Password, OrbStack apps and OMP Pet app/plugin
 ./scripts/bootstrap.sh --extras      # Add lazygit, direnv and ShellCheck
 ./scripts/bootstrap.sh --data-tools  # Add Postgres 17, SQLite, DuckDB and Valkey binaries
 ./scripts/bootstrap.sh --dry-run --extras --data-tools
 ```
 
-The 1Password CLI remains in the core set. `--cli-only` includes Colima; start its VM explicitly when containers are needed. Native data packages are optional and setup does not launch their services. Project libraries, cloud accounts and hosted infrastructure are documented rather than provisioned.
+The 1Password CLI remains in the core set. `--cli-only` skips OrbStack while retaining Docker CLI/Compose/Buildx; install or use an existing container engine separately. Full setup installs OrbStack but leaves first launch to you. Native data packages are optional and setup does not launch their services. Project libraries, cloud accounts and hosted infrastructure are documented rather than provisioned.
 
 ## What installs where
 
 | Layer | Manager / configuration |
 |---|---|
-| Workstation CLIs, OMP, Colima, apps | Homebrew; `Brewfile` and companion Brewfiles |
+| Workstation CLIs, OMP, OrbStack, apps | Homebrew; `Brewfile` and companion Brewfiles |
 | Bun, Go, Rust, mbx | mise; `mise.toml` copied into a global config fragment |
 | Node 22 and Greptile, TypeScript LSP, Pyright | mise; Node is compatibility tooling, Bun is the JS project default |
 | Python 3.13 and project environments | uv; no global project libraries |
@@ -114,4 +114,4 @@ The ZIP contains tracked package files, with executable permissions; `.git`, bac
 
 ## Rollback
 
-Remove the managed source blocks from your `.zprofile`/`.zshrc`, then remove the `mac-dev-bootstrap` shell folder, `mise/conf.d/50-mac-dev-bootstrap.toml` and `~/.local/bin/agent-run` if you no longer want them. Restore a changed file from its adjacent backup when appropriate. OMP/Worktrunk files were created only when missing; remove those only if you have not since customized them. The Docker config change appends Homebrew's CLI plugin directory; remove just that entry if needed. Restore existing settings rather than deleting whole config directories. Colima VM state is separate; stop it with `colima stop` when appropriate and keep its disks. For OMP Pet, unlink it through OMP's plugin controls before removing the managed source/app directory. Installed packages remain until explicitly uninstalled.
+Remove the managed source blocks from your `.zprofile`/`.zshrc`, then remove the `mac-dev-bootstrap` shell folder, `mise/conf.d/50-mac-dev-bootstrap.toml` and `~/.local/bin/agent-run` if you no longer want them. Restore a changed file from its adjacent backup when appropriate. OMP/Worktrunk files were created only when missing; remove those only if you have not since customized them. The Docker config change appends Homebrew's CLI plugin directory; remove just that entry if needed. Restore existing settings rather than deleting whole config directories. OrbStack engine data is separate; stop it through the app when appropriate and preserve its disks/volumes. Existing Colima installations and data are left intact. For OMP Pet, unlink it through OMP's plugin controls before removing the managed source/app directory. Installed packages remain until explicitly uninstalled.
