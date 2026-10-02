@@ -7,7 +7,7 @@ elif [[ $# != 0 ]]; then fail 'Usage: doctor.sh [--cli-only]'; fi
 load_brew || fail 'Homebrew is missing.'
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$HOME/.local/bin:${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 missing=0
-for tool in brew mise git gh rg fd fzf zoxide atuin bat jq xh ast-grep watchexec hyperfine lefthook wt omp cargo-binstall cargo-nextest uv ruff ty biome golangci-lint sqlc gopls dlv tofu caddy docker op ckg; do
+for tool in brew mise git gh rg fd fzf zoxide atuin bat jq xh ast-grep watchexec hyperfine lefthook wt omp cargo-binstall cargo-nextest uv ruff ty biome golangci-lint sqlc gopls dlv tofu caddy colima docker op ckg; do
   if command -v "$tool" >/dev/null 2>&1; then
     printf 'OK      %-26s %s\n' "$tool" "$(command -v "$tool")"
   else
@@ -29,13 +29,18 @@ fi
 if ! docker compose version; then missing=1; fi
 if ! docker buildx version; then missing=1; fi
 if [[ $CLI_ONLY == 0 ]]; then
-  for app in kitty Zed OrbStack '1Password'; do
+  for app in kitty Zed '1Password'; do
     if [[ -d "/Applications/$app.app" || -d "$HOME/Applications/$app.app" ]]; then
       printf 'OK      %s.app\n' "$app"
     else
       printf 'MISSING %s.app\n' "$app"; missing=1
     fi
   done
+  if plugins="$(omp plugin list --json)" && linked="$(printf '%s' "$plugins" | jq -r '[.npm[]? | select(.name == "omp-pet" and .enabled != false) | .path] | first // empty')" && [[ -n "$linked" && -x "$linked/dist/OMP Pet.app/Contents/MacOS/omp-pet" ]]; then
+    printf 'OK      OMP Pet app and enabled plugin\n'
+  else
+    printf 'MISSING OMP Pet app or enabled plugin; run scripts/install-omp-pet.sh or check the existing plugin.\n'; missing=1
+  fi
 fi
 printf '\nAccounts and the container engine are manual follow-ups: docs/MANUAL.md\n'
 exit "$missing"

@@ -151,6 +151,12 @@ class ScriptTests(unittest.TestCase):
             self.assertIn('Brewfile.optional', result.stdout)
             self.assertIn('Brewfile.data', result.stdout)
             self.assertIn('configure.py', result.stdout)
+            self.assertIn('install-omp-pet.sh', result.stdout)
+            cli = subprocess.run([str(ROOT / 'scripts/bootstrap.sh'), '--dry-run', '--cli-only'], env=env, capture_output=True, text=True)
+            self.assertEqual(cli.returncode, 0, cli.stderr)
+            self.assertNotIn('install-omp-pet.sh', cli.stdout)
+            self.assertNotIn('Brewfile.apps', cli.stdout)
+            self.assertFalse(marker.exists())
 
     @unittest.skipUnless(shutil.which('jq'), 'jq is required')
     def test_project_init_handles_unusual_paths_and_repeat_runs(self):

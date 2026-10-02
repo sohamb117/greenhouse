@@ -30,6 +30,14 @@ Fresh default-profile installs receive `config/omp.yml`: cache retention `long`,
 
 LSP tools installed: TypeScript language server, Pyright, gopls and rust-analyzer. Go debugging uses `dlv`; LLDB comes from Apple's developer tools. For Python debugging, add `debugpy` to the relevant project's dev dependencies (`uv add --dev debugpy`) and point the adapter at that environment. OMP's LSP/DAP setup should use the project's language environment rather than globally installing that project's libraries. GPUI repositories may need full Xcode and their specified Apple SDK: follow that project's build instructions.
 
+## OMP Pet
+
+Full bootstrap runs build [sohamb117/omp-pet](https://github.com/sohamb117/omp-pet) from `config/omp-pet.rev` and link its OMP extension. `--cli-only` skips the app/plugin. The source and locally signed app remain in the managed data directory, so the extension's default app path works without a machine-specific setting. Rust and uv-managed Python are used for the native build; Bun dev dependencies are not needed for installation.
+
+In OMP, run `/reload-plugins` if the session was already open, then `/pet show` and `/pet status`. Setup does not launch the app or configure launch at login. If your existing plugin uses another source directory or is disabled, its settings are preserved: check `omp plugin list --json` and use OMP's plugin controls to select/enable the desired installation. Named profiles should verify discovery in the profile they use. Custom sprite packs are selected with `/pet sprites`; no custom sprite artwork or preferences are copied by bootstrap.
+
+To inspect or rerun installation, use `./scripts/install-omp-pet.sh --dry-run` or `./scripts/install-omp-pet.sh`. Pin upgrades deliberately by changing the full commit SHA in `config/omp-pet.rev`. If GitHub access requires a different transport, set `OMP_PET_GIT_URL=git@github.com:sohamb117/omp-pet.git` after configuring your GitHub SSH access. A checkout with local changes or a different origin is preserved and setup stops for you to resolve it.
+
 ## CKG and MCP
 
 Run these from each actual checkout/worktree:
@@ -64,9 +72,20 @@ Shell integration is installed through the managed zsh fragment. Verify `wt conf
 
 mbx is configured through mise's Rust `mr_boxington` option. Use `mise exec -- cargo build` or a mise-activated shell. Calling rustup's Cargo path directly bypasses this integration. Verify `mise which cargo` and `mbx doctor`. Projects that redefine Rust should keep `mr_boxington = true` and include `mr-boxington` in their tools if they want the same behavior. Keep repository-required Rust versions authoritative.
 
-## OrbStack and Docker
+## Colima VM and Docker
 
-Launch OrbStack, finish first-run permissions/licensing and start its engine. Then check `docker context ls`, select the intended context when necessary, and run `docker info`. This package installs Docker CLI/Compose/Buildx and appends Homebrew's plugin directory to your Docker CLI config without replacing credentials or contexts. It does not pull images, create containers or start a paid resource.
+Colima and Docker CLI/Compose/Buildx are installed with the core tools, including `--cli-only`. Start the local VM explicitly:
+
+```sh
+colima start --runtime docker
+colima status
+docker context ls
+docker --context colima info
+# When you are finished with this VM:
+colima stop
+```
+
+The `colima` Docker context above is for the default profile. Use the corresponding context for a named profile. For larger projects, select CPU/memory/disk sizes appropriate to the Mac using `colima start --help`. Preserve existing profiles, VM disks, volumes and images; installing this package does not migrate or uninstall an existing container engine. This package appends Homebrew's plugin directory to your Docker CLI config without replacing credentials or contexts. It does not pull images, create containers or start a paid resource.
 
 ## Greptile
 
@@ -90,6 +109,6 @@ direnv is installed only with `--extras`. Uncomment the direnv hook in the insta
 
 ## Services and infrastructure
 
-Postgres, SQLite, DuckDB and Valkey native tools are available with `--data-tools`. Alternatively use the project's Docker Compose file through OrbStack. Choose service versions, ports, credentials and persistence per project; start a native service explicitly only if needed. Caddy and OpenTofu are installed, with no listeners or infrastructure applied.
+Postgres, SQLite, DuckDB and Valkey native tools are available with `--data-tools`. Alternatively use the project's Docker Compose file through Colima. Choose service versions, ports, credentials and persistence per project; start a native service explicitly only if needed. Caddy and OpenTofu are installed, with no listeners or infrastructure applied.
 
 S3, turbopuffer, Sentry and hosted Grafana/Prometheus require project/account configuration. OpenTelemetry belongs in application instrumentation; GitHub Actions workflows and OpenTofu state/backend/providers belong in the repo. No managed service is provisioned by this bootstrap.

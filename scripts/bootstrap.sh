@@ -58,6 +58,9 @@ log 'Install language runtimes and agent compatibility CLIs.'
 run mise -C "$HOME" trust "${XDG_CONFIG_HOME:-$HOME/.config}/mise/conf.d/50-mac-dev-bootstrap.toml"
 run mise -C "$HOME" install bun node go rust mr-boxington npm:greptile npm:typescript npm:typescript-language-server npm:pyright
 run mise -C "$HOME" reshim
+if [[ $CLI_ONLY == 0 ]]; then
+  run "$BOOTSTRAP_ROOT/scripts/install-omp-pet.sh"
+fi
 log 'Install CKG, preferring a release binary and allowing a source build.'
 if [[ $DRY_RUN == 1 ]]; then
   run mise -C "$HOME" exec -- cargo binstall --no-confirm --disable-strategies quick-install ckg@0.1.5

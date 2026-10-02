@@ -1,6 +1,6 @@
 # Canonical LLM-native engineering stack
 
-Based on the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`), updated at the user's request on 2026-10-02: **Colima** supplies the VM/container engine and **sohamb117/omp-pet** supplies the OMP desktop companion. The original recovered message is preserved in `docs/STACK-ORIGINAL.md`; current installation sources live in `docs/SOURCES.md`.
+Source: the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`). The message below is preserved in full; ChatGPT-only citation markers have been removed. Installation notes and current source links live in `docs/SOURCES.md`.
 
 Yes. I’d reduce the whole thing to these lists.
 
@@ -40,7 +40,7 @@ Yes. I’d reduce the whole thing to these lists.
 - lazygit optional
 
 **Local infra**
-- Colima
+- OrbStack
 - 1Password CLI
 
 ---
@@ -62,12 +62,6 @@ This is the actual LLM-native layer.
   - prompt/context machinery
 
 OMP currently ships dozens of tools, LSP/DAP operations and broad provider support.
-
-### Desktop companion
-- **[sohamb117/omp-pet](https://github.com/sohamb117/omp-pet)**
-  - native macOS companion
-  - OMP plugin bridge
-  - built from a pinned source revision
 
 ### Repo intelligence
 - **CKG**
@@ -257,7 +251,7 @@ Cache/queues        Valkey
 Blobs               S3
 Remote retrieval    turbopuffer
 Local code KG       CKG/SQLite
-Containers          Colima/Docker
+Containers          OrbStack/Docker
 Reverse proxy       Caddy
 Telemetry           OpenTelemetry
 Metrics             Prometheus
@@ -281,7 +275,6 @@ mise
 
 AGENTS
 OMP
-omp-pet
 CKG
 Worktrunk
 Greptile
@@ -302,7 +295,7 @@ gh
 Lefthook
 
 ISOLATION
-Colima
+OrbStack
 
 TS
 Bun
