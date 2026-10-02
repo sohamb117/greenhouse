@@ -1,0 +1,9 @@
+# Provider credentials and model selection are completed interactively in OMP.
+providers:
+  cacheRetention: long
+provider:
+  appendOnlyContext: auto
+compaction:
+  enabled: true
+  asyncEnabled: true
+  methodOrder: [remote, snapcompact, handoff, shake, soft]

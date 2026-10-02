@@ -1,0 +1,5 @@
+# Only installed with --data-tools. Does not start any services.
+brew "postgresql@17"
+brew "sqlite"
+brew "duckdb"
+brew "valkey"

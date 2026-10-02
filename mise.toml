@@ -1,0 +1,15 @@
+# Installed as ~/.config/mise/conf.d/50-mac-dev-bootstrap.toml.
+# Python versions and project environments belong to uv, not mise.
+# First installation resolves rolling selectors; pin exact versions per repo.
+min_version = "2026.9.2"
+
+[tools]
+bun = "latest"
+node = "22"  # Compatibility runtime for npm CLIs; Bun stays the JS default.
+go = "latest"
+rust = { version = "latest", profile = "default", components = ["rust-src", "rust-analyzer"], mr_boxington = true }
+mr-boxington = "latest"
+"npm:greptile" = "latest"
+"npm:typescript" = "latest"
+"npm:typescript-language-server" = "latest"
+"npm:pyright" = "latest"

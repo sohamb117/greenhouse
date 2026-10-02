@@ -1,0 +1,4 @@
+# Only installed with --extras.
+brew "lazygit"
+brew "direnv"
+brew "shellcheck"

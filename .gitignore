@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.zip
+*.mac-dev-backup-*
+.env
+.env.*
+!.env.example
+work/

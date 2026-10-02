@@ -1,0 +1,2 @@
+# Sibling worktrees keep generated files outside the primary checkout.
+worktree-path = "../{{ repo }}.worktrees/{{ branch | sanitize }}"
