@@ -50,14 +50,16 @@ run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile"
 if [[ $CLI_ONLY == 0 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.apps"; fi
 if [[ $EXTRAS == 1 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.optional"; fi
 if [[ $DATA_TOOLS == 1 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.data"; fi
-log 'Configure shell, mise, Worktrunk and OMP with backups.'
+log 'Configure shell, mise and Worktrunk with backups.'
 run uv python install 3.13
-run uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py"
+run uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py" --skip-omp
 log 'Install OMP, language runtimes and agent compatibility CLIs through mise.'
 # Neutral cwd avoids inheriting the bootstrap checkout as a project config.
 run mise -C "$HOME" trust "${XDG_CONFIG_HOME:-$HOME/.config}/mise/conf.d/50-mac-dev-bootstrap.toml"
 run mise -C "$HOME" install bun github:can1357/oh-my-pi node go rust mr-boxington npm:greptile npm:typescript npm:typescript-language-server npm:pyright
 run mise -C "$HOME" reshim
+log 'Install shared OMP settings, instructions and CKG MCP defaults.'
+run mise -C "$HOME" exec -- uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py" --omp-only
 if [[ $CLI_ONLY == 0 ]]; then
   run "$BOOTSTRAP_ROOT/scripts/install-omp-pet.sh"
 fi

@@ -1,4 +1,4 @@
-"""Exercise the installer with a real local Git repo and fake build/plugin tools."""
+"""Exercise release setup with isolated homes and fake OMP/app-download commands."""
 import json
 import os
 from pathlib import Path
@@ -13,44 +13,38 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(os.uname().sysname == 'Darwin' and shutil.which('jq'), 'macOS and jq are required')
 class PetInstallerTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix='pet installer ')
+        self.temporary = tempfile.TemporaryDirectory(prefix='pet release installer ')
         self.root = Path(self.temporary.name)
         self.fixture = self.root / 'bootstrap'
         (self.fixture / 'scripts').mkdir(parents=True)
         (self.fixture / 'config').mkdir()
-        shutil.copy2(ROOT / 'scripts/install-omp-pet.sh', self.fixture / 'scripts/install-omp-pet.sh')
+        for name in ('install-omp-pet.sh', 'doctor-omp-pet.sh'):
+            shutil.copy2(ROOT / 'scripts' / name, self.fixture / 'scripts' / name)
         common = (ROOT / 'scripts/common.sh').read_text()
-        # Keep the fixture PATH; never discover a real Homebrew install.
         (self.fixture / 'scripts/common.sh').write_text(common.replace('load_brew() {', 'load_brew() {\n  return 0'))
-        self.source = self.root / 'managed source with spaces'
-        self.upstream = self.root / 'upstream'
+        (self.fixture / 'config/omp-pet.release').write_text('v0.1.2\n')
+        self.home = self.root / 'home with spaces'
+        self.home.mkdir()
+        self.plugin = self.root / 'plugin with spaces'
+        self.app = self.home / 'Library/Application Support/OMP Pet/apps/0.1.2/OMP Pet.app'
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         self.log = self.root / 'invocations'
         self.plugins = self.root / 'plugins.json'
         self.plugins.write_text('{"npm": []}\n')
-        self.env = dict(os.environ, PATH=str(self.bin) + ':' + os.environ['PATH'],
-                        OMP_PET_DIR=str(self.source), OMP_PET_GIT_URL=self.upstream.as_uri(),
+        self.env = dict(os.environ, HOME=str(self.home), PATH=str(self.bin) + ':' + os.environ['PATH'],
                         PET_TEST_LOG=str(self.log), PET_TEST_PLUGIN_STATE=str(self.plugins),
-                        GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
-        self.upstream.mkdir()
-        (self.upstream / 'scripts').mkdir()
-        (self.upstream / '.gitignore').write_text('dist/\n')
-        (self.upstream / 'scripts/build-app.sh').write_text('''#!/bin/sh
-set -eu
-cd "$(dirname "$0")/.."
-app='dist/OMP Pet.app/Contents/MacOS/omp-pet'
-mkdir -p "$(dirname "$app")"
-printf '#!/bin/sh\\nexit 0\\n' > "$app"
-chmod +x "$app"
-printf 'build\\n' >> "$PET_TEST_LOG"
+                        PET_TEST_PLUGIN_DIR=str(self.plugin), PET_TEST_APP=str(self.app))
+        for key in ('OMP_PET_APP', 'OMP_PET_DIR', 'OMP_PET_GIT_URL'):
+            self.env.pop(key, None)
+        self.tool('uname', '''#!/bin/sh
+case "$1" in
+  -s) echo Darwin ;;
+  -m) echo "${PET_TEST_ARCH:-arm64}" ;;
+  *) exit 99 ;;
+esac
 ''')
-        self.git('init', '-b', 'main')
-        self.git('add', '.')
-        self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
-                 '-c', 'commit.gpgsign=false', 'commit', '-m', 'Fixture source')
-        self.revision = self.git('rev-parse', 'HEAD').strip()
-        (self.fixture / 'config/omp-pet.rev').write_text(self.revision + '\n')
+        self.tool('sysctl', '#!/bin/sh\necho 0\n')
         self.tool('mise', '''#!/bin/bash
 set -eu
 [[ "$1" == -C ]]; shift 2
@@ -60,28 +54,43 @@ if [[ "$1" == github:can1357/oh-my-pi ]]; then
   [[ "$1" == -- && "$2" == omp ]]; shift 2
   exec "$(dirname "$0")/managed-omp" "$@"
 fi
-[[ "$1" == -- ]]; shift
-exec "$@"
-''')
-        self.tool('uv', '''#!/bin/bash
-set -eu
-[[ "$1" == run && "$2" == --no-project && "$3" == --python && "$4" == 3.13 ]]; shift 4
-exec "$@"
+[[ "$1" == -- && "$2" == bun ]]; shift 2
+exec "$(dirname "$0")/bun" "$@"
 ''')
         self.tool('managed-omp', '''#!/bin/bash
 set -eu
 case "$1" in
   --version) printf '18.5.1\\n' ;;
-  plugin) [[ "$2" == list && "$3" == --json ]]; cat "$PET_TEST_PLUGIN_STATE" ;;
-  install)
-    [[ ${PET_TEST_INSTALL_FAIL:-0} == 0 ]] || exit 9
-    printf 'install\\n' >> "$PET_TEST_LOG"
-    jq -n --arg path "$2" '{npm: [{name: "omp-pet", path: $path, enabled: true}]}' > "$PET_TEST_PLUGIN_STATE" ;;
+  plugin)
+    case "$2" in
+      list) [[ "$3" == --json ]]; cat "$PET_TEST_PLUGIN_STATE" ;;
+      install)
+        [[ "$3" == github:sohamb117/omp-pet#v0.1.2 ]]
+        [[ ${PET_TEST_INSTALL_FAIL:-0} == 0 ]] || exit 9
+        printf 'install\\n' >> "$PET_TEST_LOG"
+        mkdir -p "$PET_TEST_PLUGIN_DIR/extension"
+        touch "$PET_TEST_PLUGIN_DIR/extension/installer.ts"
+        jq -n --arg path "$PET_TEST_PLUGIN_DIR" '{npm: [{name: "omp-pet", version: "0.1.2", path: $path, enabled: true}]}' > "$PET_TEST_PLUGIN_STATE" ;;
+      *) exit 99 ;;
+    esac ;;
   *) exit 99 ;;
 esac
 ''')
-        # A stale ambient/Homebrew CLI must never handle the managed plugin.
-        self.tool('omp', '#!/bin/sh\necho "unexpected old OMP" >&2\nexit 88\n')
+        self.tool('bun', '''#!/bin/bash
+set -eu
+[[ "$1" == -e && "$2" == *ensurePetApp* && "$3" == "$PET_TEST_PLUGIN_DIR/extension/installer.ts" ]]
+[[ ${PET_TEST_DOWNLOAD_FAIL:-0} == 0 ]] || exit 8
+if [[ ! -x "$PET_TEST_APP/Contents/MacOS/omp-pet" ]]; then
+  printf 'download\\n' >> "$PET_TEST_LOG"
+  mkdir -p "$PET_TEST_APP/Contents/MacOS"
+  printf '#!/bin/sh\\nexit 0\\n' > "$PET_TEST_APP/Contents/MacOS/omp-pet"
+  chmod +x "$PET_TEST_APP/Contents/MacOS/omp-pet"
+fi
+printf '%s\\n' "$PET_TEST_APP"
+''')
+        # No ambient OMP, Git/source build or app launch may be used.
+        for name in ('omp', 'git', 'cargo', 'uv', 'open'):
+            self.tool(name, '#!/bin/sh\necho "unexpected command" >&2\nexit 88\n')
 
     def tearDown(self):
         self.temporary.cleanup()
@@ -91,63 +100,91 @@ esac
         path.write_text(content)
         path.chmod(0o755)
 
-    def git(self, *args):
-        return subprocess.check_output(['git', '-C', str(self.upstream), *args], env=self.env,
-                                       stderr=subprocess.DEVNULL, text=True)
-
-    def run_installer(self, *args, success=True):
-        result = subprocess.run([str(self.fixture / 'scripts/install-omp-pet.sh'), *args],
+    def run_script(self, name='install-omp-pet.sh', *args, success=True):
+        result = subprocess.run([str(self.fixture / 'scripts' / name), *args],
                                 env=self.env, capture_output=True, text=True)
-        if success:
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        else:
-            self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
         return result
 
-    def test_fresh_install_and_repeat_preserve_build_and_link(self):
-        self.run_installer()
-        self.assertEqual(subprocess.check_output(['git', '-C', str(self.source), 'rev-parse', 'HEAD'], text=True).strip(), self.revision)
-        before = (self.source / '.git/mac-dev-bootstrap-built-revision').stat().st_mtime_ns
-        self.run_installer()
-        self.assertEqual(self.log.read_text(), 'build\ninstall\n')
-        self.assertEqual((self.source / '.git/mac-dev-bootstrap-built-revision').stat().st_mtime_ns, before)
+    def test_fresh_install_and_repeat_reuse_plugin_and_app(self):
+        self.run_script()
+        executable = self.app / 'Contents/MacOS/omp-pet'
+        before = executable.stat().st_mtime_ns
+        self.run_script()
+        self.assertEqual(self.log.read_text(), 'install\ndownload\n')
+        self.assertEqual(executable.stat().st_mtime_ns, before)
+        self.run_script('doctor-omp-pet.sh')
 
-    def test_dry_run_leaves_no_checkout_or_plugin_changes(self):
+    def test_dry_run_leaves_no_plugin_or_app_changes(self):
         before = self.plugins.read_bytes()
-        result = self.run_installer('--dry-run')
-        self.assertFalse(self.source.exists())
+        result = self.run_script('install-omp-pet.sh', '--dry-run')
+        self.assertFalse(self.plugin.exists())
+        self.assertFalse(self.app.exists())
         self.assertFalse(self.log.exists())
         self.assertEqual(self.plugins.read_bytes(), before)
-        self.assertIn(self.revision, result.stdout)
-        self.assertIn('build-app.sh', result.stdout)
+        self.assertIn('github:sohamb117/omp-pet#v0.1.2', result.stdout)
+        self.assertNotIn('cargo', result.stdout)
 
-    def test_local_source_edits_are_preserved(self):
-        self.run_installer()
-        path = self.source / 'scripts/build-app.sh'
-        path.write_text(path.read_text() + '# personal edit\n')
-        before = path.read_bytes()
-        self.run_installer(success=False)
-        self.assertEqual(path.read_bytes(), before)
-        self.assertEqual(self.log.read_text(), 'build\ninstall\n')
-
-    def test_other_existing_plugin_is_preserved(self):
-        existing = {'npm': [{'name': 'omp-pet', 'path': str(self.root / 'personal-plugin'), 'enabled': False}]}
+    def test_existing_other_version_is_preserved(self):
+        existing = {'npm': [{'name': 'omp-pet', 'version': '0.0.9', 'path': str(self.root / 'personal-plugin'), 'enabled': True}]}
         self.plugins.write_text(json.dumps(existing))
-        self.run_installer()
+        self.run_script()
         self.assertEqual(json.loads(self.plugins.read_text()), existing)
-        self.assertEqual(self.log.read_text(), 'build\n')
-
-    def test_plugin_failure_can_be_retried_without_rebuilding(self):
-        self.env['PET_TEST_INSTALL_FAIL'] = '1'
-        self.run_installer(success=False)
-        self.env['PET_TEST_INSTALL_FAIL'] = '0'
-        self.run_installer()
-        self.assertEqual(self.log.read_text(), 'build\ninstall\n')
-
-    def test_existing_non_repository_directory_is_preserved(self):
-        self.source.mkdir()
-        existing = self.source / 'personal.txt'
-        existing.write_text('keep me')
-        self.run_installer(success=False)
-        self.assertEqual(existing.read_text(), 'keep me')
         self.assertFalse(self.log.exists())
+
+    def test_disabled_plugin_is_preserved(self):
+        self.run_script()
+        existing = json.loads(self.plugins.read_text())
+        existing['npm'][0]['enabled'] = False
+        self.plugins.write_text(json.dumps(existing))
+        self.run_script()
+        self.assertEqual(json.loads(self.plugins.read_text()), existing)
+        self.assertEqual(self.log.read_text(), 'install\ndownload\n')
+        self.run_script('doctor-omp-pet.sh', success=False)
+
+    def test_plugin_failure_is_retryable(self):
+        self.env['PET_TEST_INSTALL_FAIL'] = '1'
+        self.run_script(success=False)
+        self.assertFalse(self.app.exists())
+        self.env['PET_TEST_INSTALL_FAIL'] = '0'
+        self.run_script()
+        self.assertEqual(self.log.read_text(), 'install\ndownload\n')
+
+    def test_download_failure_reuses_installed_plugin_on_retry(self):
+        self.env['PET_TEST_DOWNLOAD_FAIL'] = '1'
+        self.run_script(success=False)
+        self.assertFalse(self.app.exists())
+        self.env['PET_TEST_DOWNLOAD_FAIL'] = '0'
+        self.run_script()
+        self.assertEqual(self.log.read_text(), 'install\ndownload\n')
+
+    def test_legacy_checkout_is_untouched(self):
+        legacy = self.home / '.local/share/mac-dev-bootstrap/omp-pet'
+        legacy.mkdir(parents=True)
+        source = legacy / 'personal.txt'
+        source.write_text('keep my old checkout')
+        self.run_script()
+        self.assertEqual(source.read_text(), 'keep my old checkout')
+        self.assertEqual(list(legacy.iterdir()), [source])
+
+    def test_intel_skips_without_source_fallback(self):
+        self.env['PET_TEST_ARCH'] = 'x86_64'
+        self.run_script()
+        self.run_script('doctor-omp-pet.sh')
+        self.assertFalse(self.plugin.exists())
+        self.assertFalse(self.log.exists())
+
+    def test_doctor_checks_release_cache_and_reports_missing_app(self):
+        self.run_script()
+        self.run_script('doctor-omp-pet.sh')
+        (self.app / 'Contents/MacOS/omp-pet').unlink()
+        self.run_script('doctor-omp-pet.sh', success=False)
+
+    def test_doctor_honors_app_override(self):
+        self.run_script()
+        alternate = self.root / 'custom app/Contents/MacOS/omp-pet'
+        alternate.parent.mkdir(parents=True)
+        shutil.copy2(self.app / 'Contents/MacOS/omp-pet', alternate)
+        (self.app / 'Contents/MacOS/omp-pet').unlink()
+        self.env['OMP_PET_APP'] = str(alternate.parents[2])
+        self.run_script('doctor-omp-pet.sh')

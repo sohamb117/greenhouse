@@ -72,7 +72,72 @@ class ConfigurationTests(unittest.TestCase):
         self.install()
         self.assertFalse((self.omp / 'config.yml').exists())
         self.assertIn('personal/model', legacy.read_text())
+        self.assertEqual(configure.yaml_value(legacy.read_text())['providers']['cacheRetention'], 'long')
+        self.assertEqual(len(list(self.omp.glob('config.yaml.mac-dev-backup-*'))), 1)
         self.assertEqual(wt.read_text(), 'worktree-path = "custom"\n')
+
+    def test_shared_omp_defaults_preserve_custom_values_and_servers(self):
+        self.omp.mkdir(parents=True)
+        settings = self.omp / 'config.yml'
+        settings.write_text('modelRoles:\n  default: personal/model\ncompaction:\n  enabled: false\n')
+        original = settings.read_text()
+        mcp = self.omp / 'mcp.json'
+        existing = {'mcpServers': {'custom': {'command': 'my-server'}}, 'disabledServers': ['custom']}
+        mcp.write_text(json.dumps(existing))
+        agents = self.omp / 'AGENTS.md'
+        agents.write_text('Keep my personal instructions.\n')
+        self.install()
+        values = configure.yaml_value(settings.read_text())
+        self.assertFalse(values['compaction']['enabled'])
+        self.assertTrue(values['compaction']['asyncEnabled'])
+        self.assertEqual(values['modelRoles']['default'], 'personal/model')
+        backup = list(self.omp.glob('config.yml.mac-dev-backup-*'))
+        self.assertEqual(len(backup), 1)
+        self.assertEqual(backup[0].read_text(), original)
+        servers = json.loads(mcp.read_text())
+        self.assertEqual(servers['mcpServers']['custom'], existing['mcpServers']['custom'])
+        self.assertEqual(servers['disabledServers'], ['custom'])
+        self.assertEqual(servers['mcpServers']['ckg']['args'], ['mcp', '.', '--compact'])
+        self.assertTrue(agents.read_text().startswith('Keep my personal instructions.\n'))
+        self.assertEqual(agents.read_text().count(configure.MD_START), 1)
+        self.assertNotIn('Project facts to complete', agents.read_text())
+        before = self.snapshot()
+        self.install()
+        self.assertEqual(before, self.snapshot())
+
+    def test_empty_global_yaml_receives_defaults(self):
+        self.omp.mkdir(parents=True)
+        settings = self.omp / 'config.yml'
+        settings.write_text('# Empty user settings\n')
+        self.install()
+        self.assertEqual(configure.yaml_value(settings.read_text())['providers']['cacheRetention'], 'long')
+
+    def test_existing_user_ckg_definition_is_preserved(self):
+        self.omp.mkdir(parents=True)
+        mcp = self.omp / 'mcp.json'
+        original = {'mcpServers': {'ckg': {'command': 'custom-ckg', 'enabled': False}}}
+        mcp.write_text(json.dumps(original))
+        self.install()
+        self.assertEqual(json.loads(mcp.read_text()), original)
+
+    def test_invalid_global_instructions_fail_before_omp_writes(self):
+        self.omp.mkdir(parents=True)
+        (self.omp / 'AGENTS.md').write_text(configure.MD_START + '\nmissing end\n')
+        before = self.snapshot()
+        with self.assertRaises(ValueError):
+            configure.install_omp(self.omp)
+        self.assertEqual(before, self.snapshot())
+
+    def test_legacy_json_settings_seed_global_yaml_without_losing_values(self):
+        self.omp.mkdir(parents=True)
+        legacy = self.omp / 'settings.json'
+        legacy.write_text(json.dumps({'modelRoles': {'default': 'personal/model'}}))
+        before = legacy.read_bytes()
+        self.install()
+        self.assertEqual(legacy.read_bytes(), before)
+        values = configure.yaml_value((self.omp / 'config.yml').read_text())
+        self.assertEqual(values['modelRoles']['default'], 'personal/model')
+        self.assertEqual(values['providers']['cacheRetention'], 'long')
 
     def test_rc_symlink_is_preserved(self):
         target = self.home / 'my-dotfiles/zshrc'

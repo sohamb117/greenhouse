@@ -1,22 +1,31 @@
 # Delivery validation
 
-Validated on this Mac on **2026-10-03** using the existing uv-managed Python **3.13.15**, without running the live installer or changing real account/shell settings.
+Validated on this Mac on **2026-10-03** using uv-managed Python **3.13.15** and the installed Bun runtime, without running the live workstation bootstrap or changing real account/shell settings.
 
-**20 tests passed**, covering:
+**29 tests passed**, covering:
 
-- Identical configuration and file timestamps after a repeated run.
+- Repeated configuration runs preserve file content and timestamps.
 - Existing shell content, permissions, backups and symlink preservation.
-- Existing OMP/Worktrunk settings preservation.
-- Managed-block updates and rejection of malformed blocks before writes.
-- Docker plugin configuration merging with existing credentials/context retained.
-- Bash, zsh and Brewfile syntax.
-- Starter/root agent instruction consistency.
-- Dry-run behavior without executing installers and rejection of unknown flags.
-- Repo initialization with spaces/quotes in paths, repeat runs and existing instruction/MCP preservation.
+- Existing OMP model/provider choices and explicit settings remain authoritative while missing shared defaults are merged.
+- Shared user instructions preserve personal text, exclude project-fact placeholders and update idempotently.
+- User-level CKG uses the current checkout; existing CKG definitions, other MCP servers and enable/disable choices are preserved.
+- Empty/comment-only YAML receives defaults; legacy JSON settings seed global YAML without deleting the legacy file.
+- Malformed managed blocks are rejected before affected configuration writes.
+- Docker plugin merging keeps existing credentials/context.
+- Bash, zsh and Brewfile syntax; root/starter instruction consistency.
+- Dry-run behavior without executing installers; rejection of unknown flags.
+- Project initialization handles unusual paths and preserves existing instructions/MCP.
 - Full output retention and command exit-code preservation in `agent-run`.
-- OMP Pet installation with a real local Git fixture and fake build/plugin commands: fresh install, pinned revision, repeat-run reuse, preview mode, dirty/non-repository source preservation, existing plugin preservation and retry after plugin failure. Every fixture includes a deliberately failing old ambient `omp`; mise-managed OMP handles the checks and plugin operations.
-- Full versus CLI-only setup: the latter skips OMP Pet and GUI apps while retaining Docker CLI/Compose/Buildx in the core Brewfile.
+- Pet release setup with isolated homes and fake OMP/download commands: fresh install, offline/cache reruns, previews, plugin/download retries, disabled/different-version plugin preservation, legacy checkout preservation, Intel skip, release-cache doctor checks and app overrides. Old ambient OMP, Git, cargo, uv and app-launch commands deliberately fail in these fixtures.
+- Full versus CLI-only setup: CLI-only skips Pet and GUI apps, retaining Docker clients.
 
-Installation uses a Git checkout. Optional archive export is not an installation step. `docs/STACK-ORIGINAL.md` retains the recovered full canonical message. `STACK.md` and the agent starters now apply the final OrbStack selection and OMP Pet addition.
+Additional real checks:
 
-Not exercised: installation on a wiped Mac, Homebrew/mise package downloads, Intel binary/source installation, the real native OMP Pet source build or VM startup, graphical app first launches, authenticated OMP/MCP sessions or any account/service provisioning. The delivered install commands were checked against linked primary documentation. Rolling package/version selectors and vendor requirements can change; rerun the doctor on the actual target Mac.
+- The published `v0.1.2` app archive matches the release's `SHA256SUMS`.
+- Upstream `ensurePetApp()` downloaded/extracted the real release into a temporary cache, verified its bundle identity/version and code signature, then reused it with network access deliberately disabled. No app was launched.
+- The installed OMP CLI read `providers.cacheRetention: long` from shared user settings while running in a fresh project without project config. Shared instructions and CKG MCP files were also created in that isolated user directory.
+- Bootstrap dry-run and final diff checks passed.
+
+Installation and updates use a Git checkout. Optional archive export is not an installation step. `docs/STACK-ORIGINAL.md` preserves the recovered canonical message; `STACK.md` and the agent starters reflect the current stack.
+
+Not exercised: installation on a wiped Mac, Homebrew/mise package downloads, VM startup, graphical first launches, model sessions, authenticated MCP connections or account/service provisioning. The Pet release currently supports native Apple Silicon; Intel/Rosetta is skipped rather than compiled. Named OMP profiles are isolated and require running configuration for each desired profile. Package/version selectors can change; run the doctor on the target Mac.

@@ -28,17 +28,21 @@ OMP is installed by mise through the official `github:can1357/oh-my-pi` backend.
 
 Run `omp setup`, or launch `omp` in a project. Use `/login` for supported subscription/OAuth providers and `/model` to choose the default, smol/scout and slow/implementation roles according to your available accounts. API-key providers can use their documented environment variables through 1Password. No model, subscription or API key is assumed.
 
-Fresh default-profile installs receive `config/omp.yml`: cache retention `long`, automatic append-only context selection and asynchronous compaction. Existing settings are left intact; inspect the file and merge the supported keys manually. Verify with `omp config list` and `omp config path`. Named OMP profiles have separate settings/authentication; apply equivalent defaults in the profile you actually use. Avoid enabling large collections of context-mutating extensions by default. Snapcompact is a fallback with model-dependent retention, not a byte-perfect compression promise.
+Shared OMP settings, instructions and MCP configuration are installed in the native user directory and automatically discovered in every project. Normally this is `~/.omp/agent/`; `PI_CODING_AGENT_DIR` relocates the default profile. `config/omp.yml` supplies cache/compaction defaults. Setup merges missing keys into existing `config.yml` (or `config.yaml`), keeping your current values, providers and model choices. Legacy `settings.json` is retained when seeding YAML. Changed files receive backups; serializing an updated YAML file may normalize formatting/comments.
+
+`AGENTS.md` gets a managed shared-stack block while preserving other text. User-level `mcp.json` gets a `ckg` entry only when absent, using `ckg mcp . --compact`; OMP's stdio transport uses its project cwd. The index still needs refreshing in each checkout. Existing CKG definitions, other servers and enable/disable controls are kept. Repository instructions/configuration can override user defaults; bootstrap does not force the shared policy over project decisions.
+
+Verify with `omp config path`, `omp config get providers.cacheRetention`, `/mcp list` and `/mcp reload`. Named profiles isolate these files. To apply the same defaults to a named profile, run `OMP_PROFILE=work ./scripts/configure.sh`; repeat for profiles you use. A new profile does not inherit default-profile files automatically. `PI_CONFIG_DIR`, `PI_CODING_AGENT_DIR`, `OMP_PROFILE` and `PI_PROFILE` are respected by configuration. No credentials or approval policy are installed.
 
 LSP tools installed: TypeScript language server, Pyright, gopls and rust-analyzer. Go debugging uses `dlv`; LLDB comes from Apple's developer tools. For Python debugging, add `debugpy` to the relevant project's dev dependencies (`uv add --dev debugpy`) and point the adapter at that environment. OMP's LSP/DAP setup should use the project's language environment rather than globally installing that project's libraries. GPUI repositories may need full Xcode and their specified Apple SDK: follow that project's build instructions.
 
 ## OMP Pet
 
-Full bootstrap runs build [sohamb117/omp-pet](https://github.com/sohamb117/omp-pet) from `config/omp-pet.rev` and link its OMP extension. `--cli-only` skips the app/plugin. The source and locally signed app remain in the managed data directory, so the extension's default app path works without a machine-specific setting. Rust and uv-managed Python are used for the native build; Bun dev dependencies are not needed for installation.
+Full bootstrap installs the plugin from the published tag in `config/omp-pet.release`, currently `v0.1.2`, then invokes its `ensurePetApp()` installer through Bun. The installer downloads the matching GitHub app release, verifies checksum, bundle version/identity and code signature, and caches it in `~/Library/Application Support/OMP Pet/apps/<version>/`. No Rust build or app launch occurs. `--cli-only` skips Pet. Published apps currently support native Apple Silicon; Intel/Rosetta is skipped without a compilation fallback.
 
-In OMP, run `/reload-plugins` if the session was already open, then `/pet show` and `/pet status`. Setup does not launch the app or configure launch at login. If your existing plugin uses another source directory or is disabled, its settings are preserved: check `omp plugin list --json` and use OMP's plugin controls to select/enable the desired installation. Named profiles should verify discovery in the profile they use. Custom sprite packs are selected with `/pet sprites`; no custom sprite artwork or preferences are copied by bootstrap.
+In OMP, run `/reload-plugins` if the session was already open, then `/pet show` and `/pet status`. `/pet install` downloads or repairs the app without launching it. On an upgrade, use `/pet quit` for the old app before `/pet show`. App launch/login and custom sprite selection remain explicit actions. Ad-hoc release signatures are not Apple notarization; use normal macOS first-launch prompts rather than disabling system protections.
 
-To inspect or rerun installation, use `./scripts/install-omp-pet.sh --dry-run` or `./scripts/install-omp-pet.sh`. Pin upgrades deliberately by changing the full commit SHA in `config/omp-pet.rev`. If GitHub access requires a different transport, set `OMP_PET_GIT_URL=git@github.com:sohamb117/omp-pet.git` after configuring your GitHub SSH access. A checkout with local changes or a different origin is preserved and setup stops for you to resolve it.
+Rerun `./scripts/install-omp-pet.sh` after a download failure; the plugin install and app cache are reused. The helper preserves disabled/different-version/custom plugins and prints how to select the desired release explicitly. Pin upgrades by editing `config/omp-pet.release` to a published tag, then selecting it through OMP plugin controls. Existing source checkouts are never built, reset or removed. `OMP_PET_APP` is an explicit app override supported by upstream. Named profiles should check plugin discovery in the profile they use.
 
 ## CKG and MCP
 
@@ -50,7 +54,7 @@ ckg task-context "$PWD" "fix auth refresh race" --max-tokens 2000 --json
 ckg doctor "$PWD"
 ```
 
-`init-repo.sh` writes this OMP-native schema (with the target path serialized correctly):
+OMP already receives a portable user-level CKG entry from bootstrap. For an optional project-specific override, `init-repo.sh` writes this OMP-native schema (with the target path serialized correctly):
 
 ```json
 {

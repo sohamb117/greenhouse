@@ -41,11 +41,7 @@ if [[ $CLI_ONLY == 0 ]]; then
       printf 'MISSING %s.app\n' "$app"; missing=1
     fi
   done
-  if plugins="$(MISE_AUTO_INSTALL=0 mise -C "$HOME" exec github:can1357/oh-my-pi -- omp plugin list --json)" && linked="$(printf '%s' "$plugins" | jq -r '[.npm[]? | select(.name == "omp-pet" and .enabled != false) | .path] | first // empty')" && [[ -n "$linked" && -x "$linked/dist/OMP Pet.app/Contents/MacOS/omp-pet" ]]; then
-    printf 'OK      OMP Pet app and enabled plugin\n'
-  else
-    printf 'MISSING OMP Pet app or enabled plugin; run scripts/install-omp-pet.sh or check the existing plugin.\n'; missing=1
-  fi
+  if ! "$BOOTSTRAP_ROOT/scripts/doctor-omp-pet.sh"; then missing=1; fi
 fi
 printf '\nAccounts and the container engine are manual follow-ups: docs/MANUAL.md\n'
 exit "$missing"

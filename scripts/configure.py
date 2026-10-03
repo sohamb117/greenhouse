@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 from datetime import datetime, timezone
 
@@ -61,7 +62,88 @@ def add_block(path, body):
     return write_changed(path, before + START + '\n' + body + '\n' + END + '\n' + after)
 
 
-def install(home, config_home, zsh_dir, omp_dir):
+MD_START = '<!-- >>> mac-dev-bootstrap >>> -->'
+MD_END = '<!-- <<< mac-dev-bootstrap <<< -->'
+
+
+def yaml_value(text):
+    # Bun ships with the stack; parse YAML without a separate global Python package.
+    result = subprocess.run(['bun', '-e',
+        'console.log(JSON.stringify(Bun.YAML.parse(await Bun.stdin.text()) ?? null));'],
+        input=text, text=True, capture_output=True, check=True)
+    value = json.loads(result.stdout)
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError('OMP settings must contain a mapping.')
+    return value
+
+
+def merge_missing(current, defaults):
+    changed = False
+    for key, value in defaults.items():
+        if key not in current:
+            current[key] = value
+            changed = True
+        elif isinstance(current[key], dict) and isinstance(value, dict):
+            changed = merge_missing(current[key], value) or changed
+    return changed
+
+
+def install_omp(omp_dir):
+    defaults_text = (ROOT / 'config/omp.yml').read_text()
+    defaults = yaml_value(defaults_text)
+    settings = next((omp_dir / name for name in ('config.yml', 'config.yaml')
+                     if (omp_dir / name).exists()), omp_dir / 'config.yml')
+    legacy = omp_dir / 'settings.json'
+    if settings.exists():
+        current = yaml_value(settings.read_text())
+    elif legacy.exists():
+        current = json.loads(legacy.read_text())
+        if not isinstance(current, dict):
+            raise ValueError('OMP settings.json must contain an object.')
+    else:
+        current = {}
+    settings_changed = merge_missing(current, defaults)
+    mcp = omp_dir / 'mcp.json'
+    servers = json.loads(mcp.read_text()) if mcp.exists() else {}
+    if not isinstance(servers, dict) or not isinstance(servers.get('mcpServers', {}), dict):
+        raise ValueError('OMP mcp.json and mcpServers must contain objects.')
+    # CKG resolves '.' against the stdio transport's session/project cwd.
+    mcp_changed = 'ckg' not in servers.get('mcpServers', {})
+    if mcp_changed:
+        servers.setdefault('mcpServers', {})['ckg'] = {
+            'type': 'stdio', 'command': 'ckg', 'args': ['mcp', '.', '--compact']}
+    agents = omp_dir / 'AGENTS.md'
+    original = agents.read_text() if agents.exists() else ''
+    markers = [line.strip() for line in original.splitlines() if line.strip() in (MD_START, MD_END)]
+    if markers not in ([], [MD_START, MD_END]):
+        raise ValueError('Malformed managed block in ' + str(agents))
+    if settings_changed or not settings.exists():
+        if not settings.exists() and not legacy.exists():
+            content = defaults_text
+        else:
+            result = subprocess.run(['bun', '-e',
+                'console.log(Bun.YAML.stringify(JSON.parse(await Bun.stdin.text())));'],
+                input=json.dumps(current), text=True, capture_output=True, check=True)
+            content = result.stdout
+        write_changed(settings, content)
+    if mcp_changed:
+        write_changed(mcp, json.dumps(servers, indent=2) + '\n')
+    starter = (ROOT / 'templates/AGENTS.md').read_text()
+    shared = '# Shared engineering defaults\n\n' + starter[starter.index('This is a portable starter.'):]
+    block = MD_START + '\n' + shared.rstrip() + '\n' + MD_END + '\n'
+    if markers:
+        begin = original.index(MD_START)
+        end = original.index(MD_END, begin) + len(MD_END)
+        suffix = original[end:]
+        content = original[:begin] + block.rstrip('\n') + suffix
+    else:
+        content = original + ('\n\n' if original and not original.endswith('\n') else '\n' if original else '') + block
+    write_changed(agents, content)
+
+
+def install(home, config_home, zsh_dir, omp_dir, skip_omp=False):
     # Validate both rc files before any writes.
     for name in ('.zprofile', '.zshrc'):
         path = zsh_dir / name
@@ -84,11 +166,8 @@ def install(home, config_home, zsh_dir, omp_dir):
         print('Preserved existing Worktrunk config:', wt)
     else:
         write_changed(wt, (ROOT / 'config/worktrunk.toml').read_text())
-    legacy = [omp_dir / name for name in ('config.yml', 'config.yaml', 'settings.json')]
-    if any(path.exists() for path in legacy):
-        print('Preserved existing OMP settings. Compare config/omp.yml manually.')
-    else:
-        write_changed(omp_dir / 'config.yml', (ROOT / 'config/omp.yml').read_text())
+    if not skip_omp:
+        install_omp(omp_dir)
     # Docker uses DOCKER_CONFIG, not XDG.
     docker = Path(os.environ.get('DOCKER_CONFIG', str(home / '.docker')))
     path = docker / 'config.json'
@@ -109,6 +188,8 @@ def install(home, config_home, zsh_dir, omp_dir):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--target-home', type=Path, help='Use an isolated home directory for configuration tests.')
+    parser.add_argument('--skip-omp', action='store_true', help='Stage mise configuration before Bun is installed.')
+    parser.add_argument('--omp-only', action='store_true', help='Install only shared OMP defaults after runtimes are available.')
     args = parser.parse_args()
     home = args.target_home.expanduser().resolve() if args.target_home else Path.home()
     if args.target_home:
@@ -116,8 +197,14 @@ def main():
     else:
         config_home = Path(os.environ.get('XDG_CONFIG_HOME', str(home / '.config')))
         zsh_dir = Path(os.environ.get('ZDOTDIR', str(home)))
-        omp_dir = Path(os.environ.get('PI_CODING_AGENT_DIR', str(home / '.omp/agent')))
-    install(home, config_home, zsh_dir, omp_dir)
+        omp_root = Path(os.environ.get('PI_CONFIG_DIR', str(home / '.omp')))
+        profile = os.environ.get('OMP_PROFILE') or os.environ.get('PI_PROFILE') or 'default'
+        omp_dir = (Path(os.environ.get('PI_CODING_AGENT_DIR', str(omp_root / 'agent')))
+                   if profile == 'default' else omp_root / 'profiles' / profile / 'agent')
+    if args.omp_only:
+        install_omp(omp_dir)
+    else:
+        install(home, config_home, zsh_dir, omp_dir, skip_omp=args.skip_omp)
 
 
 if __name__ == '__main__':
