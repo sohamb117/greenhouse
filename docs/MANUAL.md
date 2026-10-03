@@ -24,6 +24,8 @@ For provider keys and cloud secrets, use `op run --env-file=... -- COMMAND` with
 
 ## Oh My Pi
 
+OMP is installed by mise through the official `github:can1357/oh-my-pi` backend. Verify with `mise -C "$HOME" exec github:can1357/oh-my-pi -- omp --version`. Open a new terminal after bootstrap so the managed mise shims take precedence; `type -a omp` can reveal older Homebrew/Bun installs. Existing installations and OMP settings/authentication are preserved. If you want to remove the old Homebrew copy, first verify the mise binary works, then explicitly run `brew uninstall can1357/tap/omp`; bootstrap does not uninstall it for you. Existing global/project mise overrides still take precedence over the managed fragment.
+
 Run `omp setup`, or launch `omp` in a project. Use `/login` for supported subscription/OAuth providers and `/model` to choose the default, smol/scout and slow/implementation roles according to your available accounts. API-key providers can use their documented environment variables through 1Password. No model, subscription or API key is assumed.
 
 Fresh default-profile installs receive `config/omp.yml`: cache retention `long`, automatic append-only context selection and asynchronous compaction. Existing settings are left intact; inspect the file and merge the supported keys manually. Verify with `omp config list` and `omp config path`. Named OMP profiles have separate settings/authentication; apply equivalent defaults in the profile you actually use. Avoid enabling large collections of context-mutating extensions by default. Snapcompact is a fallback with model-dependent retention, not a byte-perfect compression promise.

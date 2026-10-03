@@ -12,7 +12,7 @@ This is a portable starter. Existing repository instructions, lockfiles, CI chec
 
 ## Operating environment
 
-The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. OrbStack supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
+The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise installs OMP through `github:can1357/oh-my-pi` and selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. OrbStack supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
 
 Run from the actual intended checkout/worktree. Inspect `git status`, repository instructions, version files, dependency manifests and CI before editing. If several checkouts could match the task, identify the intended one. Read `mise.toml`, `rust-toolchain.toml`, `.python-version` and lockfiles rather than assuming global versions. Use `mise exec -- COMMAND` or repo mise tasks for background commands; interactive shell hooks are not guaranteed in an agent process.
 
@@ -43,7 +43,7 @@ MCP `ckg` should run `ckg mcp /absolute/path/to/this/worktree --compact`. Native
 
 ## Harness, context and tool output
 
-OMP is the primary harness: LSP, debugger, MCP, provider routing, sessions and task tools. `sohamb117/omp-pet` is the native macOS companion; bootstrap builds its pinned source and links the OMP plugin. Use `/reload-plugins`, `/pet show` and `/pet status` in OMP. Pet animation indicates lifecycle activity, not proof of model/tool progress; verify actual command results. Use built-in semantic/debugger operations when useful. Reuse warm language servers/dev servers/watchers instead of launching duplicates. Do not change OMP credentials, approval mode or model settings just to complete a routine code task.
+Use `mise exec github:can1357/oh-my-pi -- omp ...` for OMP in non-interactive commands; do not install it with Homebrew. OMP is the primary harness: LSP, debugger, MCP, provider routing, sessions and task tools. `sohamb117/omp-pet` is the native macOS companion; bootstrap builds its pinned source and links the OMP plugin. Use `/reload-plugins`, `/pet show` and `/pet status` in OMP. Pet animation indicates lifecycle activity, not proof of model/tool progress; verify actual command results. Use built-in semantic/debugger operations when useful. Reuse warm language servers/dev servers/watchers instead of launching duplicates. Do not change OMP credentials, approval mode or model settings just to complete a routine code task.
 
 Keep the prompt prefix stable. Prefer bounded context, narrow file reads and patches. OMP defaults in this setup enable long cache retention and async compaction with snapcompact as a fallback; caching support and compaction fidelity depend on the provider/model. Snapcompact is not mathematically lossless. Authenticate and select available scout/implementation models through OMP rather than hardcoding model names.
 

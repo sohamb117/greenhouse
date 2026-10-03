@@ -7,7 +7,7 @@ elif [[ $# != 0 ]]; then fail 'Usage: doctor.sh [--cli-only]'; fi
 load_brew || fail 'Homebrew is missing.'
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/mise/shims:$HOME/.local/bin:${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 missing=0
-for tool in brew mise git gh rg fd fzf zoxide atuin bat jq xh ast-grep watchexec hyperfine lefthook wt omp cargo-binstall cargo-nextest uv ruff ty biome golangci-lint sqlc gopls dlv tofu caddy docker op ckg; do
+for tool in brew mise git gh rg fd fzf zoxide atuin bat jq xh ast-grep watchexec hyperfine lefthook wt cargo-binstall cargo-nextest uv ruff ty biome golangci-lint sqlc gopls dlv tofu caddy docker op ckg; do
   if command -v "$tool" >/dev/null 2>&1; then
     printf 'OK      %-26s %s\n' "$tool" "$(command -v "$tool")"
   else
@@ -21,6 +21,11 @@ for tool in bun node go rustc cargo mbx greptile tsc typescript-language-server 
     printf 'MISSING %s (mise)\n' "$tool"; missing=1
   fi
 done
+if MISE_AUTO_INSTALL=0 mise -C "$HOME" exec github:can1357/oh-my-pi -- omp --version; then
+  printf 'OK      OMP (mise GitHub backend)\n'
+else
+  printf 'MISSING OMP (mise GitHub backend)\n'; missing=1
+fi
 if python_path="$(uv python find --managed-python 3.13 2>/dev/null)"; then
   "$python_path" --version
 else
@@ -36,7 +41,7 @@ if [[ $CLI_ONLY == 0 ]]; then
       printf 'MISSING %s.app\n' "$app"; missing=1
     fi
   done
-  if plugins="$(omp plugin list --json)" && linked="$(printf '%s' "$plugins" | jq -r '[.npm[]? | select(.name == "omp-pet" and .enabled != false) | .path] | first // empty')" && [[ -n "$linked" && -x "$linked/dist/OMP Pet.app/Contents/MacOS/omp-pet" ]]; then
+  if plugins="$(MISE_AUTO_INSTALL=0 mise -C "$HOME" exec github:can1357/oh-my-pi -- omp plugin list --json)" && linked="$(printf '%s' "$plugins" | jq -r '[.npm[]? | select(.name == "omp-pet" and .enabled != false) | .path] | first // empty')" && [[ -n "$linked" && -x "$linked/dist/OMP Pet.app/Contents/MacOS/omp-pet" ]]; then
     printf 'OK      OMP Pet app and enabled plugin\n'
   else
     printf 'MISSING OMP Pet app or enabled plugin; run scripts/install-omp-pet.sh or check the existing plugin.\n'; missing=1

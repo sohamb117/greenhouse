@@ -1,5 +1,4 @@
 # Core CLIs. App installs are separated into Brewfile.apps.
-tap "can1357/tap"
 brew "git"
 brew "gh"
 brew "mise"
@@ -17,7 +16,6 @@ brew "watchexec"
 brew "hyperfine"
 brew "lefthook"
 brew "worktrunk"
-brew "can1357/tap/omp"
 brew "cargo-binstall"
 brew "cargo-nextest"
 brew "ruff"

@@ -1,6 +1,6 @@
 # Delivery validation
 
-Validated on this Mac on **2026-10-02** using the existing uv-managed Python **3.13.15**, without running the live installer or changing real account/shell settings.
+Validated on this Mac on **2026-10-03** using the existing uv-managed Python **3.13.15**, without running the live installer or changing real account/shell settings.
 
 **20 tests passed**, covering:
 
@@ -14,9 +14,9 @@ Validated on this Mac on **2026-10-02** using the existing uv-managed Python **3
 - Dry-run behavior without executing installers and rejection of unknown flags.
 - Repo initialization with spaces/quotes in paths, repeat runs and existing instruction/MCP preservation.
 - Full output retention and command exit-code preservation in `agent-run`.
-- OMP Pet installation with a real local Git fixture and fake build/plugin commands: fresh install, pinned revision, repeat-run reuse, preview mode, dirty/non-repository source preservation, existing plugin preservation and retry after plugin failure.
+- OMP Pet installation with a real local Git fixture and fake build/plugin commands: fresh install, pinned revision, repeat-run reuse, preview mode, dirty/non-repository source preservation, existing plugin preservation and retry after plugin failure. Every fixture includes a deliberately failing old ambient `omp`; mise-managed OMP handles the checks and plugin operations.
 - Full versus CLI-only setup: the latter skips OMP Pet and GUI apps while retaining Docker CLI/Compose/Buildx in the core Brewfile.
 
-The ZIP was checked for integrity, matching source bytes, expected contents and executable script permissions. `docs/STACK-ORIGINAL.md` retains the recovered full canonical message. `STACK.md` and the agent starters now apply the final OrbStack selection and OMP Pet addition.
+Installation uses a Git checkout. Optional archive export is not an installation step. `docs/STACK-ORIGINAL.md` retains the recovered full canonical message. `STACK.md` and the agent starters now apply the final OrbStack selection and OMP Pet addition.
 
 Not exercised: installation on a wiped Mac, Homebrew/mise package downloads, Intel binary/source installation, the real native OMP Pet source build or VM startup, graphical app first launches, authenticated OMP/MCP sessions or any account/service provisioning. The delivered install commands were checked against linked primary documentation. Rolling package/version selectors and vendor requirements can change; rerun the doctor on the actual target Mac.

@@ -12,7 +12,7 @@ This is a portable starter. Existing repository instructions, lockfiles, CI chec
 
 ## Operating environment
 
-The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. OrbStack supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
+The workstation is macOS with kitty, zsh and Zed. Homebrew owns system CLIs/apps. mise installs OMP through `github:can1357/oh-my-pi` and selects Bun, Go, Rust and mbx; Node 22 is a compatibility runtime for npm CLIs. uv owns Python versions, virtual environments and packages. OrbStack supplies local Docker infrastructure. Secrets come through 1Password CLI or the project's approved secret source.
 
 Run from the actual intended checkout/worktree. Inspect `git status`, repository instructions, version files, dependency manifests and CI before editing. If several checkouts could match the task, identify the intended one. Read `mise.toml`, `rust-toolchain.toml`, `.python-version` and lockfiles rather than assuming global versions. Use `mise exec -- COMMAND` or repo mise tasks for background commands; interactive shell hooks are not guaranteed in an agent process.
 
@@ -43,7 +43,7 @@ MCP `ckg` should run `ckg mcp /absolute/path/to/this/worktree --compact`. Native
 
 ## Harness, context and tool output
 
-OMP is the primary harness: LSP, debugger, MCP, provider routing, sessions and task tools. `sohamb117/omp-pet` is the native macOS companion; bootstrap builds its pinned source and links the OMP plugin. Use `/reload-plugins`, `/pet show` and `/pet status` in OMP. Pet animation indicates lifecycle activity, not proof of model/tool progress; verify actual command results. Use built-in semantic/debugger operations when useful. Reuse warm language servers/dev servers/watchers instead of launching duplicates. Do not change OMP credentials, approval mode or model settings just to complete a routine code task.
+Use `mise exec github:can1357/oh-my-pi -- omp ...` for OMP in non-interactive commands; do not install it with Homebrew. OMP is the primary harness: LSP, debugger, MCP, provider routing, sessions and task tools. `sohamb117/omp-pet` is the native macOS companion; bootstrap builds its pinned source and links the OMP plugin. Use `/reload-plugins`, `/pet show` and `/pet status` in OMP. Pet animation indicates lifecycle activity, not proof of model/tool progress; verify actual command results. Use built-in semantic/debugger operations when useful. Reuse warm language servers/dev servers/watchers instead of launching duplicates. Do not change OMP credentials, approval mode or model settings just to complete a routine code task.
 
 Keep the prompt prefix stable. Prefer bounded context, narrow file reads and patches. OMP defaults in this setup enable long cache retention and async compaction with snapcompact as a fallback; caching support and compaction fidelity depend on the provider/model. Snapcompact is not mathematically lossless. Authenticate and select available scout/implementation models through OMP rather than hardcoding model names.
 
@@ -132,8 +132,8 @@ End with what changed, how it was verified and material remaining issues. Link u
 
 Purpose: create portable workstation setup files; installing the workstation is a separate user-invoked action. `STACK.md` is the full source record. Treat `templates/AGENTS.md` as the reusable starter; keep the shared content aligned with this file.
 
-Directories: `scripts/` contains install/configure/doctor/repo-init/package helpers; `config/` and `shell/` are installable snippets; `docs/` contains auth/source/validation notes; `tests/` validates preservation and repeat behavior without modifying a real home.
+Directories: `scripts/` contains install/configure/doctor/repo-init helpers and an optional archive exporter; `config/` and `shell/` are installable snippets; `docs/` contains auth/source/validation notes; `tests/` validates preservation and repeat behavior without modifying a real home.
 
 Checks: shell syntax with `/bin/bash -n scripts/*.sh` (iterate per file), zsh syntax with `/bin/zsh -n shell/*.zsh` (iterate per file), Ruby syntax for Brewfiles, Python tests with `uv run --no-project --python 3.13 python -m unittest discover -s tests -v`. `bootstrap.sh --dry-run` previews setup. Do not run the live bootstrap as a test. Authenticate nothing and provision no service as part of editing this package.
 
-Configuration must preserve existing rc content, OMP/Worktrunk settings, Docker credentials and user Git identity. Back up modified managed files, handle unusual paths, and preserve command exit statuses. Do not add cleanup commands that uninstall packages or remove user state. Package only tracked deliverables; keep credentials, caches and `.git` out of the ZIP.
+Configuration must preserve existing rc content, OMP/Worktrunk settings, Docker credentials and user Git identity. Back up modified managed files, handle unusual paths, and preserve command exit statuses. Do not add cleanup commands that uninstall packages or remove user state. Install and update this bootstrap from its Git checkout; do not use a ZIP as the install source. Optional archive exports must contain only tracked deliverables, with credentials, caches and `.git` excluded.

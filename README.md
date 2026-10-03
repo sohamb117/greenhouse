@@ -4,13 +4,17 @@ A reusable setup for Soham's canonical LLM-native engineering stack. `STACK.md` 
 
 ## On a fresh Mac
 
-Copy or unzip this folder into `~/Documents/code/mac-dev-bootstrap`, open Terminal as your normal user, then:
+Install from a Git checkout. Open Terminal as your normal user. If Git is unavailable, run `xcode-select --install`, finish the Apple Command Line Tools dialog, then continue:
 
 ```sh
+mkdir -p ~/Documents/code
+git clone https://github.com/sohamb117/greenhouse.git ~/Documents/code/mac-dev-bootstrap
 cd ~/Documents/code/mac-dev-bootstrap
 ./scripts/bootstrap.sh --dry-run
 ./scripts/bootstrap.sh
 ```
+
+If you already have this checkout, use it directly instead of cloning over it. HTTPS cloning does not require GitHub SSH keys.
 
 If Apple Command Line Tools are missing, setup opens Apple's installer and stops. Finish that dialog and rerun. The Homebrew installer may ask for your Mac password. Run from a native Apple Silicon terminal on ARM Macs; Intel Macs use `/usr/local`. Use a macOS release supported by the current Homebrew packages and app vendors; the current OrbStack cask requires macOS 14 or newer.
 
@@ -37,7 +41,8 @@ The 1Password CLI remains in the core set. `--cli-only` skips OrbStack while ret
 
 | Layer | Manager / configuration |
 |---|---|
-| Workstation CLIs, OMP, OrbStack, apps | Homebrew; `Brewfile` and companion Brewfiles |
+| Workstation CLIs, OrbStack, apps | Homebrew; `Brewfile` and companion Brewfiles |
+| OMP | mise GitHub backend; `github:can1357/oh-my-pi` exposes the native `omp` binary |
 | Bun, Go, Rust, mbx | mise; `mise.toml` copied into a global config fragment |
 | Node 22 and Greptile, TypeScript LSP, Pyright | mise; Node is compatibility tooling, Bun is the JS project default |
 | Python 3.13 and project environments | uv; no global project libraries |
@@ -64,7 +69,7 @@ Fill in the project facts at the top of the starter: purpose, directories, exact
 
 ## Re-running and updating
 
-Rerun `bootstrap.sh` after interruption. Homebrew uses `--no-upgrade` and never runs package cleanup. Configuration uses atomic writes; unchanged managed files are left alone. Changed files receive adjacent `.mac-dev-backup-<UTC timestamp>` copies. Existing OMP and Worktrunk settings are preserved. Shell source blocks are replaced in place without replacing the rest of your rc files. `ZDOTDIR`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `DOCKER_CONFIG`, `PI_CODING_AGENT_DIR` and `CARGO_HOME` are respected where relevant.
+Rerun `bootstrap.sh` after interruption. To update this checkout, commit/stash your local edits as appropriate, run `git pull --ff-only`, then rerun setup. Homebrew uses `--no-upgrade` and never runs package cleanup. Configuration uses atomic writes; unchanged managed files are left alone. Changed files receive adjacent `.mac-dev-backup-<UTC timestamp>` copies. Existing OMP and Worktrunk settings are preserved. Shell source blocks are replaced in place without replacing the rest of your rc files. `ZDOTDIR`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `DOCKER_CONFIG`, `PI_CODING_AGENT_DIR` and `CARGO_HOME` are respected where relevant.
 
 The mise fragment has lower priority than your existing global/project config. Check `mise config` and `mise ls` if a pre-existing version overrides it. Python remains selected by `uv run --python 3.13` or the project's `.python-version`. A rerun is convergent, but rolling selectors can resolve newer releases: this package is portable, not a byte-identical lock of Homebrew or all language binaries. CKG preserves a CLI already present on PATH.
 
@@ -91,7 +96,7 @@ agent-run uv run pytest
 
 Logs live under `${XDG_STATE_HOME:-$HOME/.local/state}/mac-dev-bootstrap/tool-results`. There is no automatic deletion; remove old logs when no longer needed. Avoid including secrets in logged output. Streaming dev servers and interactive commands should be run directly.
 
-## Verification and packaging
+## Verification
 
 The included checks exercise configuration preservation, repeat runs, unusual directory names and command exit status, plus shell/config syntax. They do not install the stack or authenticate accounts:
 
@@ -101,16 +106,7 @@ uv run --no-project --python 3.13 python -m unittest discover -s tests -v
 
 The original delivery was also checked against current upstream installation documentation. See [sources](docs/SOURCES.md) and [validation](docs/VALIDATION.md).
 
-To create another ZIP from the current tracked file contents:
-
-```sh
-# After unzip, initialize and stage this folder if you want to repackage it:
-git init -b main
-git add .
-./scripts/package.sh "$HOME/Downloads/mac-dev-bootstrap.zip"
-```
-
-The ZIP contains tracked package files, with executable permissions; `.git`, backups, caches and untracked files are excluded. The archive does not contain user credentials.
+Installation and updates use Git. The optional `scripts/package.sh` helper exports an archive for storage or sharing; it is not used by installation.
 
 ## Rollback
 

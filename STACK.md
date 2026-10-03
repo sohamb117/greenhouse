@@ -1,6 +1,6 @@
 # Canonical LLM-native engineering stack
 
-Based on the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`), updated at the user's request on 2026-10-02: **OrbStack** supplies the VM/container engine for personal use and **sohamb117/omp-pet** supplies the OMP desktop companion. The original recovered message is preserved in `docs/STACK-ORIGINAL.md`; current installation sources live in `docs/SOURCES.md`.
+Based on the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`), updated at the user's request on 2026-10-03: **OrbStack** supplies the VM/container engine for personal use and **sohamb117/omp-pet** supplies the OMP desktop companion. OMP is installed through mise's `github:can1357/oh-my-pi` backend; bootstrap installation uses a Git checkout. The original recovered message is preserved in `docs/STACK-ORIGINAL.md`; current installation sources live in `docs/SOURCES.md`.
 
 Yes. I’d reduce the whole thing to these lists.
 

@@ -54,7 +54,13 @@ printf 'build\\n' >> "$PET_TEST_LOG"
         self.tool('mise', '''#!/bin/bash
 set -eu
 [[ "$1" == -C ]]; shift 2
-[[ "$1" == exec && "$2" == -- ]]; shift 2
+[[ "$1" == exec ]]; shift
+if [[ "$1" == github:can1357/oh-my-pi ]]; then
+  shift
+  [[ "$1" == -- && "$2" == omp ]]; shift 2
+  exec "$(dirname "$0")/managed-omp" "$@"
+fi
+[[ "$1" == -- ]]; shift
 exec "$@"
 ''')
         self.tool('uv', '''#!/bin/bash
@@ -62,9 +68,10 @@ set -eu
 [[ "$1" == run && "$2" == --no-project && "$3" == --python && "$4" == 3.13 ]]; shift 4
 exec "$@"
 ''')
-        self.tool('omp', '''#!/bin/bash
+        self.tool('managed-omp', '''#!/bin/bash
 set -eu
 case "$1" in
+  --version) printf '18.5.1\\n' ;;
   plugin) [[ "$2" == list && "$3" == --json ]]; cat "$PET_TEST_PLUGIN_STATE" ;;
   install)
     [[ ${PET_TEST_INSTALL_FAIL:-0} == 0 ]] || exit 9
@@ -73,6 +80,8 @@ case "$1" in
   *) exit 99 ;;
 esac
 ''')
+        # A stale ambient/Homebrew CLI must never handle the managed plugin.
+        self.tool('omp', '#!/bin/sh\necho "unexpected old OMP" >&2\nexit 88\n')
 
     def tearDown(self):
         self.temporary.cleanup()

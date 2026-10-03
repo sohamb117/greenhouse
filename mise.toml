@@ -5,6 +5,7 @@ min_version = "2026.9.2"
 
 [tools]
 bun = "latest"
+"github:can1357/oh-my-pi" = { version = "latest", bin = "omp" }
 node = "22"  # Compatibility runtime for npm CLIs; Bun stays the JS default.
 go = "latest"
 rust = { version = "latest", profile = "default", components = ["rust-src", "rust-analyzer"], mr_boxington = true }

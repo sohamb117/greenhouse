@@ -53,10 +53,10 @@ if [[ $DATA_TOOLS == 1 ]]; then run brew bundle install --no-upgrade --file="$BO
 log 'Configure shell, mise, Worktrunk and OMP with backups.'
 run uv python install 3.13
 run uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py"
-log 'Install language runtimes and agent compatibility CLIs.'
-# Neutral cwd avoids inheriting the downloaded package as a project config.
+log 'Install OMP, language runtimes and agent compatibility CLIs through mise.'
+# Neutral cwd avoids inheriting the bootstrap checkout as a project config.
 run mise -C "$HOME" trust "${XDG_CONFIG_HOME:-$HOME/.config}/mise/conf.d/50-mac-dev-bootstrap.toml"
-run mise -C "$HOME" install bun node go rust mr-boxington npm:greptile npm:typescript npm:typescript-language-server npm:pyright
+run mise -C "$HOME" install bun github:can1357/oh-my-pi node go rust mr-boxington npm:greptile npm:typescript npm:typescript-language-server npm:pyright
 run mise -C "$HOME" reshim
 if [[ $CLI_ONLY == 0 ]]; then
   run "$BOOTSTRAP_ROOT/scripts/install-omp-pet.sh"

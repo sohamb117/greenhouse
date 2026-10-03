@@ -14,12 +14,13 @@ if [[ $DRY_RUN == 1 ]]; then
   run git -C "$source_dir" fetch --depth 1 origin "$revision"
   run git -C "$source_dir" checkout --detach "$revision"
   run mise -C "$HOME" exec -- uv run --no-project --python 3.13 /bin/sh "$source_dir/scripts/build-app.sh"
-  run omp install "$source_dir"
+  run mise -C "$HOME" exec github:can1357/oh-my-pi -- omp install "$source_dir"
   exit 0
 fi
 [[ $(uname -s) == Darwin ]] || fail 'OMP Pet requires macOS.'
 load_brew || fail 'Homebrew is missing. Run bootstrap.sh first.'
-for tool in git mise uv omp jq; do command -v "$tool" >/dev/null 2>&1 || fail "Missing $tool. Run bootstrap.sh first."; done
+for tool in git mise uv jq; do command -v "$tool" >/dev/null 2>&1 || fail "Missing $tool. Run bootstrap.sh first."; done
+MISE_AUTO_INSTALL=0 mise -C "$HOME" exec github:can1357/oh-my-pi -- omp --version >/dev/null || fail 'Missing mise-managed OMP. Run bootstrap.sh first.'
 if [[ ! -e "$source_dir" ]]; then
   mkdir -p "$(dirname -- "$source_dir")"
   git clone --no-checkout --depth 1 "$source_url" "$source_dir"
@@ -46,16 +47,16 @@ if [[ ! -x "$app" || ! -r "$stamp" || $(cat "$stamp") != "$revision" ]]; then
 else
   log 'OMP Pet app is already built at the pinned revision.'
 fi
-plugins="$(omp plugin list --json)"
+plugins="$(mise -C "$HOME" exec github:can1357/oh-my-pi -- omp plugin list --json)"
 linked="$(printf '%s' "$plugins" | jq -r '[.npm[]? | select(.name == "omp-pet") | .path] | first // empty')"
 if [[ -n "$linked" ]]; then
   if [[ -d "$linked" && $(cd -- "$linked" && pwd -P) == "$source_dir" ]]; then
     log 'OMP Pet is already linked; plugin configuration preserved.'
   else
     log "Existing OMP Pet plugin preserved at $linked."
-    printf 'To switch to the managed build, run: omp install %q\n' "$source_dir"
+    printf 'To switch to the managed build, run: mise -C %q exec github:can1357/oh-my-pi -- omp install %q\n' "$HOME" "$source_dir"
   fi
 else
-  omp install "$source_dir"
+  mise -C "$HOME" exec github:can1357/oh-my-pi -- omp install "$source_dir"
 fi
 printf '\nIn OMP: /reload-plugins, then /pet show. No app was launched by setup.\n'
