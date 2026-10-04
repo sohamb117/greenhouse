@@ -1,6 +1,6 @@
 # Canonical LLM-native engineering stack
 
-Based on the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`), updated at the user's request on 2026-10-03: **OrbStack** supplies the VM/container engine for personal use and **sohamb117/omp-pet** supplies the OMP desktop companion. OMP Pet is installed from a published release without compiling, and shared OMP defaults apply through its user-level settings/instructions/MCP files. OMP is installed through mise's `github:can1357/oh-my-pi` backend; bootstrap installation uses a Git checkout. The original recovered message is preserved in `docs/STACK-ORIGINAL.md`; current installation sources live in `docs/SOURCES.md`.
+Based on the final stack message in **GPUI Rewrite Scope** (conversation `6abeed3e-8900-83e9-86a0-5e712b8fc1ca`), updated at the user's request on 2026-10-04: **OrbStack** supplies the VM/container engine for personal use and **sohamb117/omp-pet** supplies the OMP desktop companion. OMP Pet is installed from a published release without compiling, and shared OMP defaults apply through its user-level settings/instructions/MCP files. OMP is installed through mise's `github:can1357/oh-my-pi` backend; bootstrap installation uses a Git checkout. Every bootstrap tool tracks the latest stable release with no fixed version pins. 1Password is removed from the current stack; credentials use provider login or the project's existing secret source. The original recovered message is preserved in `docs/STACK-ORIGINAL.md`; current installation sources live in `docs/SOURCES.md`.
 
 Yes. I’d reduce the whole thing to these lists.
 
@@ -41,7 +41,7 @@ Yes. I’d reduce the whole thing to these lists.
 
 **Local infra**
 - OrbStack
-- 1Password CLI
+- Credentials: OMP `/login` where supported; project-approved, process-scoped API keys (no separate secret-manager install)
 
 ---
 
@@ -67,7 +67,7 @@ OMP currently ships dozens of tools, LSP/DAP operations and broad provider suppo
 - **[sohamb117/omp-pet](https://github.com/sohamb117/omp-pet)**
   - native macOS companion
   - OMP plugin bridge
-  - built from a pinned source revision
+  - downloads the latest published release and its matching plugin; no source build
 
 ### Repo intelligence
 - **CKG**

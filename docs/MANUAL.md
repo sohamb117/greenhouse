@@ -16,17 +16,24 @@ git config --global user.email "you@example.com"
 
 SSH keys/signing and organization access depend on your account. The bootstrap does not invent identity, create keys or change existing Git settings.
 
-## 1Password
+## Credentials
 
-Sign into the 1Password Mac app. In its settings, enable **Developer → Integrate with 1Password CLI**, then verify with `op whoami`. The sign-in/unlock dialogs and vault permissions are account-specific. Standalone CLI users can follow the [official guide](https://www.1password.dev/cli/get-started).
+No separate secret-manager app or CLI is required. Use OMP's `/login` for supported subscription/OAuth providers. For other tools, keep the project's approved credential source and pass only the required environment variables to the process that needs them. Existing authorized accounts do not need another sign-in.
 
-For provider keys and cloud secrets, use `op run --env-file=... -- COMMAND` with a private, untracked env file containing `op://...` references. Keep real values out of shell rc files, this repo and logs. An already-authorized account is enough; do not repeatedly sign in.
+For a temporary API key in zsh, read it without terminal echo or a literal value in shell history, run the tool in a subshell:
+
+```zsh
+# Example for an OpenAI API-key provider; use your provider's documented variable.
+(read -rs 'OPENAI_API_KEY?OpenAI API key: ' || exit; printf '\n'; export OPENAI_API_KEY; omp)
+```
+
+The subshell keeps the key out of the parent shell's environment. Do not run this under shell tracing (`set -x`), print the environment, or include secrets in prompts/logs. A private local env file is an optional plaintext convenience, not encrypted storage: keep it outside tracked files, restrict its permissions to the owner, and use the project's established loader. Bootstrap does not create or copy credentials, migrate vault contents, or uninstall existing password managers.
 
 ## Oh My Pi
 
 OMP is installed by mise through the official `github:can1357/oh-my-pi` backend. Verify with `mise -C "$HOME" exec github:can1357/oh-my-pi -- omp --version`. Open a new terminal after bootstrap so the managed mise shims take precedence; `type -a omp` can reveal older Homebrew/Bun installs. Existing installations and OMP settings/authentication are preserved. If you want to remove the old Homebrew copy, first verify the mise binary works, then explicitly run `brew uninstall can1357/tap/omp`; bootstrap does not uninstall it for you. Existing global/project mise overrides still take precedence over the managed fragment.
 
-Run `omp setup`, or launch `omp` in a project. Use `/login` for supported subscription/OAuth providers and `/model` to choose the default, smol/scout and slow/implementation roles according to your available accounts. API-key providers can use their documented environment variables through 1Password. No model, subscription or API key is assumed.
+Run `omp setup`, or launch `omp` in a project. Use `/login` for supported subscription/OAuth providers and `/model` to choose the default, smol/scout and slow/implementation roles according to your available accounts. API-key providers can use their documented environment variables through the workflow above. No model, subscription or API key is assumed.
 
 Shared OMP settings, instructions and MCP configuration are installed in the native user directory and automatically discovered in every project. Normally this is `~/.omp/agent/`; `PI_CODING_AGENT_DIR` relocates the default profile. `config/omp.yml` supplies cache/compaction defaults. Setup merges missing keys into existing `config.yml` (or `config.yaml`), keeping your current values, providers and model choices. Legacy `settings.json` is retained when seeding YAML. Changed files receive backups; serializing an updated YAML file may normalize formatting/comments.
 
@@ -38,11 +45,11 @@ LSP tools installed: TypeScript language server, Pyright, gopls and rust-analyze
 
 ## OMP Pet
 
-Full bootstrap installs the plugin from the published tag in `config/omp-pet.release`, currently `v0.1.2`, then invokes its `ensurePetApp()` installer through Bun. The installer downloads the matching GitHub app release, verifies checksum, bundle version/identity and code signature, and caches it in `~/Library/Application Support/OMP Pet/apps/<version>/`. No Rust build or app launch occurs. `--cli-only` skips Pet. Published apps currently support native Apple Silicon; Intel/Rosetta is skipped without a compilation fallback.
+Full bootstrap queries GitHub `releases/latest`, installs the plugin from that published tag, then invokes its `ensurePetApp()` installer through Bun. The tag is resolved at runtime so the plugin and app match; there is no checked-in release pin. The installer downloads the matching GitHub app release, verifies checksum, bundle version/identity and code signature, and caches it in `~/Library/Application Support/OMP Pet/apps/<version>/`. No Rust build or app launch occurs. `--cli-only` skips Pet. Published apps currently support native Apple Silicon; Intel/Rosetta is skipped without a compilation fallback.
 
 In OMP, run `/reload-plugins` if the session was already open, then `/pet show` and `/pet status`. `/pet install` downloads or repairs the app without launching it. On an upgrade, use `/pet quit` for the old app before `/pet show`. App launch/login and custom sprite selection remain explicit actions. Ad-hoc release signatures are not Apple notarization; use normal macOS first-launch prompts rather than disabling system protections.
 
-Rerun `./scripts/install-omp-pet.sh` after a download failure; the plugin install and app cache are reused. The helper preserves disabled/different-version/custom plugins and prints how to select the desired release explicitly. Pin upgrades by editing `config/omp-pet.release` to a published tag, then selecting it through OMP plugin controls. Existing source checkouts are never built, reset or removed. `OMP_PET_APP` is an explicit app override supported by upstream. Named profiles should check plugin discovery in the profile they use.
+Rerun `./scripts/install-omp-pet.sh` after a download failure; the plugin install and app cache are reused. The helper updates older official GitHub installs and preserves disabled/custom plugin sources. It stops without changing the plugin when the latest-release query fails. Reruns reuse the app cache when the release has not changed; a release check requires network access. Existing source checkouts are never built, reset or removed. `OMP_PET_APP` is an explicit app override supported by upstream. Named profiles should check plugin discovery in the profile they use.
 
 ## CKG and MCP
 
@@ -111,7 +118,7 @@ greptile whoami
 greptile review --agent
 ```
 
-Approve browser sign-in, choose your organization and explicitly choose the repositories the GitHub/GitLab app can access. The CLI requires Node 22+ and onboarding requires CLI 3.2.0+. An org-scoped `GREPTILE_API_KEY` can conflict with onboarding; use browser login for the wizard. Greptile onboarding imports AI rule files as organization context; review the starter's project facts before onboarding. Run review when code submission to the chosen service is authorized. No account, trial, organization or repository integration is created by bootstrap.
+Approve browser sign-in, choose your organization and explicitly choose the repositories the GitHub/GitLab app can access. Use the latest Node runtime and Greptile CLI for onboarding. An org-scoped `GREPTILE_API_KEY` can conflict with onboarding; use browser login for the wizard. Greptile onboarding imports AI rule files as organization context; review the starter's project facts before onboarding. Run review when code submission to the chosen service is authorized. No account, trial, organization or repository integration is created by bootstrap.
 
 ## Atuin and optional direnv
 

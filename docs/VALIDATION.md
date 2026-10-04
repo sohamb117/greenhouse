@@ -1,8 +1,8 @@
 # Delivery validation
 
-Validated on this Mac on **2026-10-03** using uv-managed Python **3.13.15** and the installed Bun runtime, without running the live workstation bootstrap or changing real account/shell settings.
+Validated on this Mac on **2026-10-04** using uv-managed Python **3.13.15** and the installed Bun runtime, without running the live workstation bootstrap or changing real account/shell settings.
 
-**29 tests passed**, covering:
+**33 tests passed**, covering:
 
 - Repeated configuration runs preserve file content and timestamps.
 - Existing shell content, permissions, backups and symlink preservation.
@@ -16,10 +16,11 @@ Validated on this Mac on **2026-10-03** using uv-managed Python **3.13.15** and 
 - Dry-run behavior without executing installers; rejection of unknown flags.
 - Project initialization handles unusual paths and preserves existing instructions/MCP.
 - Full output retention and command exit-code preservation in `agent-run`.
-- Pet release setup with isolated homes and fake OMP/download commands: fresh install, offline/cache reruns, previews, plugin/download retries, disabled/different-version plugin preservation, legacy checkout preservation, Intel skip, release-cache doctor checks and app overrides. Old ambient OMP, Git, cargo, uv and app-launch commands deliberately fail in these fixtures.
+- Pet release setup with isolated homes and fake OMP/download commands: fresh install, offline/cache reruns, previews, plugin/download retries, disabled/custom source preservation, latest-release upgrades and query failure handling, legacy checkout preservation, Intel skip, release-cache doctor checks and app overrides. Old ambient OMP, Git, cargo, uv and app-launch commands deliberately fail in these fixtures.
+- Latest Python selection ignores prereleases/alternative variants, compares version components numerically, and rejects an empty catalog.
 - Full versus CLI-only setup: CLI-only skips Pet and GUI apps, retaining Docker clients.
 
-Additional real checks:
+Historical real checks from the release-installer validation (these are evidence records, not version selectors):
 
 - The published `v0.1.2` app archive matches the release's `SHA256SUMS`.
 - Upstream `ensurePetApp()` downloaded/extracted the real release into a temporary cache, verified its bundle identity/version and code signature, then reused it with network access deliberately disabled. No app was launched.

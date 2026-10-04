@@ -24,18 +24,18 @@ Open a new terminal after setup, then:
 ./scripts/doctor.sh
 ```
 
-Complete [manual setup](docs/MANUAL.md): GitHub login and Git identity, 1Password integration, OMP provider/model selection, opening OrbStack for first-time setup and showing OMP Pet, and Greptile onboarding in each chosen repository.
+Complete [manual setup](docs/MANUAL.md): GitHub login and Git identity, project credentials, OMP provider/model selection, opening OrbStack for first-time setup and showing OMP Pet, and Greptile onboarding in each chosen repository.
 
 ## Options
 
 ```sh
-./scripts/bootstrap.sh --cli-only    # Skip kitty, Zed, 1Password, OrbStack apps and OMP Pet app/plugin
+./scripts/bootstrap.sh --cli-only    # Skip kitty, Zed, OrbStack apps and OMP Pet app/plugin
 ./scripts/bootstrap.sh --extras      # Add lazygit, direnv and ShellCheck
-./scripts/bootstrap.sh --data-tools  # Add Postgres 17, SQLite, DuckDB and Valkey binaries
+./scripts/bootstrap.sh --data-tools  # Add latest Postgres, SQLite, DuckDB and Valkey binaries
 ./scripts/bootstrap.sh --dry-run --extras --data-tools
 ```
 
-The 1Password CLI remains in the core set. `--cli-only` skips OrbStack while retaining Docker CLI/Compose/Buildx; install or use an existing container engine separately. Full setup installs OrbStack but leaves first launch to you. Native data packages are optional and setup does not launch their services. Project libraries, cloud accounts and hosted infrastructure are documented rather than provisioned.
+`--cli-only` skips OrbStack while retaining Docker CLI/Compose/Buildx; install or use an existing container engine separately. Full setup installs OrbStack but leaves first launch to you. Native data packages are optional and setup does not launch their services. Project libraries, cloud accounts and hosted infrastructure are documented rather than provisioned.
 
 ## What installs where
 
@@ -44,16 +44,20 @@ The 1Password CLI remains in the core set. `--cli-only` skips OrbStack while ret
 | Workstation CLIs, OrbStack, apps | Homebrew; `Brewfile` and companion Brewfiles |
 | OMP | mise GitHub backend; `github:can1357/oh-my-pi` exposes the native `omp` binary |
 | Bun, Go, Rust, mbx | mise; `mise.toml` copied into a global config fragment |
-| Node 22 and Greptile, TypeScript LSP, Pyright | mise; Node is compatibility tooling, Bun is the JS project default |
-| Python 3.13 and project environments | uv; no global project libraries |
-| OMP Pet | `scripts/install-omp-pet.sh`; pinned release plugin plus prebuilt app cached under `~/Library/Application Support/OMP Pet/apps/<version>/` |
-| CKG | cargo-binstall, requested version 0.1.5; may compile when no binary is available |
+| Latest Node and Greptile, TypeScript LSP, Pyright | mise; Node is compatibility tooling, Bun is the JS project default |
+| Latest stable CPython and project environments | uv; no global project libraries |
+| OMP Pet | `scripts/install-omp-pet.sh`; latest release plugin plus prebuilt app cached under `~/Library/Application Support/OMP Pet/apps/<version>/` |
+| CKG | cargo-binstall, newest crate release; may compile when no binary is available |
 | zsh integration | Small managed blocks in `.zprofile` and `.zshrc` |
 | Worktrunk defaults | Created only when user config is absent |
 | Shared OMP defaults | User/profile `config.yml` (missing keys merged), `AGENTS.md` (managed block), and `mcp.json` (CKG added only if absent) |
 | Agent instructions | Shared OMP instructions apply automatically in every project; `templates/AGENTS.md` remains available for project-specific facts or other harnesses |
 
 Homebrew can bring its own Go/Rust/Python dependencies. Project versions still come from mise or uv. Follow existing repo lockfiles and tool versions.
+
+## Credentials
+
+No secret-management app or CLI is installed. Use OMP's `/login` for supported providers and the project's existing credential source for API keys and cloud access. Provide required environment variables only to the relevant process; keep secret values out of tracked files, shell rc files and logs. See [manual setup](docs/MANUAL.md#credentials) for the lightweight workflow.
 
 ## Shared defaults in every OMP project
 
@@ -76,11 +80,13 @@ Fill in the project facts at the top of the starter: purpose, directories, exact
 
 ## Re-running and updating
 
-Rerun `bootstrap.sh` after interruption. To update this checkout, commit/stash your local edits as appropriate, run `git pull --ff-only`, then rerun setup. Homebrew uses `--no-upgrade` and never runs package cleanup. Configuration uses atomic writes; unchanged managed files are left alone. Changed files receive adjacent `.mac-dev-backup-<UTC timestamp>` copies. Existing OMP settings remain authoritative while missing defaults are merged; existing Worktrunk settings are preserved. Shell source blocks are replaced in place without replacing the rest of your rc files. `ZDOTDIR`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `DOCKER_CONFIG`, `PI_CODING_AGENT_DIR` and `CARGO_HOME` are respected where relevant.
+Rerun `bootstrap.sh` after interruption. To update this checkout, commit/stash your local edits as appropriate, run `git pull --ff-only`, then rerun setup. Homebrew metadata is refreshed and selected packages/apps are upgraded on every setup run; package cleanup is never run. Configuration uses atomic writes; unchanged managed files are left alone. Changed files receive adjacent `.mac-dev-backup-<UTC timestamp>` copies. Existing OMP settings remain authoritative while missing defaults are merged; existing Worktrunk settings are preserved. Shell source blocks are replaced in place without replacing the rest of your rc files. `ZDOTDIR`, `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `DOCKER_CONFIG`, `PI_CODING_AGENT_DIR` and `CARGO_HOME` are respected where relevant.
 
-The mise fragment has lower priority than your existing global/project config. Check `mise config` and `mise ls` if a pre-existing version overrides it. Python remains selected by `uv run --python 3.13` or the project's `.python-version`. A rerun is convergent, but rolling selectors can resolve newer releases: this package is portable, not a byte-identical lock of Homebrew or all language binaries. CKG preserves a CLI already present on PATH.
+All bootstrap-managed tools track the latest stable releases. Setup runs `brew update` and upgrade-enabled bundles, installs/upgrades mise tools with `@latest`, resolves the newest stable CPython download from the updated uv catalog, refreshes CKG without a fixed crate version, and queries GitHub's latest published Pet release. Repeated setup keeps settings stable while refreshing software; no release tag is checked into this package.
 
-For deliberate upgrades, use `brew update`, upgrade selected formulae/casks, and run `mise -C "$HOME" upgrade`. Pin and commit exact project versions and lockfiles when reproducibility matters. Review OMP settings after an OMP upgrade. To upgrade CKG explicitly, use `mise exec -- cargo binstall --no-confirm --disable-strategies quick-install ckg@VERSION` with your chosen release.
+Existing user/project mise overrides can still take precedence over the managed fragment. Check `mise config` and `mise ls` and change an older override to `latest` if you want that configuration to follow the workstation default. Existing application repositories keep their own dependency requirements and lockfiles; setup does not rewrite their source or databases. A new Postgres major is installed through Homebrew's `postgresql` alias; migrate existing database data separately using the project's procedure.
+
+Rerun `./scripts/bootstrap.sh` to refresh the selected tools; include `--extras` or `--data-tools` for those optional groups. Review OMP settings after an upgrade. To refresh CKG alone, use `mise exec -- cargo binstall --no-confirm --force --disable-strategies quick-install ckg`.
 
 To refresh copied config only:
 
@@ -88,7 +94,7 @@ To refresh copied config only:
 ./scripts/configure.sh
 ```
 
-To refresh OMP Pet, select a published tag in `config/omp-pet.release` and run `./scripts/install-omp-pet.sh`. Fresh setup installs the GitHub plugin and invokes its exported `ensurePetApp()` through Bun to fetch/check the matching prebuilt app, without launching it. Reruns reuse the plugin and app cache. Existing disabled, different-version or incompatible plugins are preserved with a manual switch command. Existing source checkouts remain untouched. `OMP_PET_APP` remains available for an explicit app override. Native Apple Silicon is currently required for releases; Intel/Rosetta setup skips Pet without a source-build fallback.
+To refresh OMP Pet, run `./scripts/install-omp-pet.sh`; it resolves the newest published GitHub release each time. Fresh setup installs the GitHub plugin and invokes its exported `ensurePetApp()` through Bun to fetch/check the matching prebuilt app, without launching it. Reruns reuse the plugin and app cache. Older official plugin installs are updated; disabled/custom plugin sources are preserved. Release lookup failure stops the update before changing the installed plugin. Existing source checkouts remain untouched. `OMP_PET_APP` remains available for an explicit app override. Native Apple Silicon is currently required for releases; Intel/Rosetta setup skips Pet without a source-build fallback.
 
 For non-interactive agents, use `mise exec -- COMMAND` inside the project or put mise shims on PATH. Do not rely on `.zshrc` being read by background apps. Zed launched from a terminal inherits that terminal's environment; configure its project language settings if a GUI launch uses different binaries.
 
@@ -108,7 +114,7 @@ Logs live under `${XDG_STATE_HOME:-$HOME/.local/state}/mac-dev-bootstrap/tool-re
 The included checks exercise configuration preservation, repeat runs, unusual directory names and command exit status, plus shell/config syntax. They do not install the stack or authenticate accounts:
 
 ```sh
-uv run --no-project --python 3.13 python -m unittest discover -s tests -v
+uv run --no-project --python python3 python -m unittest discover -s tests -v
 ```
 
 The original delivery was also checked against current upstream installation documentation. See [sources](docs/SOURCES.md) and [validation](docs/VALIDATION.md).

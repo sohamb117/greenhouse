@@ -1,6 +1,6 @@
 # Source and installation references
 
-OMP installation, global discovery and OMP Pet release installation checked on **2026-10-03**; the remaining sources were checked on **2026-10-02**. `docs/STACK-ORIGINAL.md` is the complete source message with ChatGPT citation markers removed. `STACK.md` reflects the user's final OrbStack and OMP Pet selections.
+OMP installation, global discovery and OMP Pet release installation checked on **2026-10-03**; the remaining sources were checked on **2026-10-02**. `docs/STACK-ORIGINAL.md` is the complete source message with ChatGPT citation markers removed. `STACK.md` reflects the user's final OrbStack and OMP Pet selections and removal of 1Password. Credentials use supported provider login or the project's existing source; no replacement secret-manager package is installed.
 
 | Tool / behavior | Primary source |
 |---|---|
@@ -20,17 +20,18 @@ OMP installation, global discovery and OMP Pet release installation checked on *
 | Greptile installation and human onboarding | [CLI onboarding](https://www.greptile.com/docs/code-review/cli-onboarding) |
 | Greptile agent review | [CLI](https://www.greptile.com/cli) |
 | uv-managed Python | [Installing Python](https://docs.astral.sh/uv/guides/install-python/) |
-| 1Password integration | [CLI guide](https://www.1password.dev/cli/get-started) |
 | OrbStack installation and Docker context | [Installation](https://docs.orbstack.dev/install), [Docker](https://docs.orbstack.dev/docker/) |
 | OrbStack Homebrew cask and platform requirements | [Cask](https://formulae.brew.sh/cask/orbstack) |
 | OrbStack personal-use plan | [Pricing](https://orbstack.dev/pricing) |
-| OMP Pet release, download checks and runtime requirements | [Release](https://github.com/sohamb117/omp-pet/releases/tag/v0.1.2), [Pinned installer](https://github.com/sohamb117/omp-pet/blob/v0.1.2/extension/installer.ts) |
+| OMP Pet release, download checks and runtime requirements | [Latest release](https://github.com/sohamb117/omp-pet/releases/latest), [Installer](https://github.com/sohamb117/omp-pet/blob/main/extension/installer.ts) |
 | OMP user-level instructions | [Context files](https://github.com/can1357/oh-my-pi/blob/main/docs/context-files.md) |
 | MCP subprocess project cwd | [Stdio transport](https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/src/mcp/transports/stdio.ts) |
 | Docker Compose plugin search path | [Homebrew formula](https://formulae.brew.sh/formula/docker-compose) |
 
-Implementation choices: OMP uses its documented mise GitHub backend with `bin = "omp"` for the native release binary. Setup installs it before the Pet helper; the helper and doctor explicitly invoke mise-managed OMP to avoid an older Homebrew CLI. Bootstrap installation and updates use a Git checkout, with no ZIP installation step. Node 22 supports Greptile/npm tools; it does not replace Bun as the JavaScript project default. Python 3.13 is a bootstrap default, not a version stated in the canonical message. CKG requests the documented 0.1.5 release and permits a source fallback on Intel. mbx is wired through the documented mise Rust option. Existing OMP settings, authentication and model choices remain personal.
+Implementation choices, updated **2026-10-04**: all workstation version selectors are rolling. Homebrew updates its metadata and upgrades selected bundles (GUI casks use `greedy: true`); `postgresql` follows Homebrew's current-major alias. mise tools use `latest` and setup explicitly upgrades them without pruning older versions. uv's updated download catalog supplies the highest stable default CPython version for this platform. CKG installs the latest crate release with no fixed version argument. Project library requirements and existing lockfiles belong to their projects.
 
-OMP Pet setup uses release `v0.1.2` and its exported app installer, not a Rust source build. Release metadata and its README/installer code were checked; the published app archive's SHA-256 matches `SHA256SUMS`. The upstream installer was exercised in a temporary cache, including bundle/signature verification and a repeat with network access disabled. Installation is idempotent through the upstream versioned cache. OMP's installed plugin CLI was checked in dry-run mode; full workstation/account setup was not run. OrbStack remains the personal container-engine selection, with other engine data preserved.
+OMP uses its official mise GitHub backend with `bin = "omp"`. Pet resolves the latest published GitHub release on every install/update, then selects that release's matching plugin and runs its upstream app installer. This transient tag coordinates plugin/app versions and is never a checked-in pin. Older official installs are upgraded; disabled/custom installs are preserved. Checksums, bundle/signature checks and app caching remain the upstream installer's responsibility. A failed latest-release lookup fails before plugin changes. Bootstrap installation and updates use Git; no ZIP installation step or Pet source build is used. Workstation/account setup is separate from editing and validation.
+
+Latest-version behavior follows [Homebrew Bundle](https://docs.brew.sh/Brew-Bundle-and-Brewfile), [mise upgrade](https://mise.jdx.dev/cli/upgrade.html), and [uv Python CLI](https://docs.astral.sh/uv/reference/cli/#uv-python-list). Available Python downloads are bundled with uv, so setup updates Homebrew's uv before resolving Python.
 
 OMP native global settings, context and MCP discovery are documented separately. Shared instructions/settings/server defaults live in the active user/profile agent directory; project files retain their own precedence. The CKG entry uses a relative `.` argument because OMP's native stdio transport explicitly uses `config.cwd ?? getProjectDir()` for subprocesses. Named profiles are isolated, so run configuration for each profile that should receive these defaults.

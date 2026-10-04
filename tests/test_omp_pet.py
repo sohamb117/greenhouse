@@ -22,10 +22,9 @@ class PetInstallerTests(unittest.TestCase):
             shutil.copy2(ROOT / 'scripts' / name, self.fixture / 'scripts' / name)
         common = (ROOT / 'scripts/common.sh').read_text()
         (self.fixture / 'scripts/common.sh').write_text(common.replace('load_brew() {', 'load_brew() {\n  return 0'))
-        (self.fixture / 'config/omp-pet.release').write_text('v0.1.2\n')
         self.home = self.root / 'home with spaces'
         self.home.mkdir()
-        self.plugin = self.root / 'plugin with spaces'
+        self.plugin = self.root / 'plugin with spaces/node_modules/omp-pet'
         self.app = self.home / 'Library/Application Support/OMP Pet/apps/0.1.2/OMP Pet.app'
         self.bin = self.root / 'bin'
         self.bin.mkdir()
@@ -45,6 +44,12 @@ case "$1" in
 esac
 ''')
         self.tool('sysctl', '#!/bin/sh\necho 0\n')
+        self.tool('curl', '''#!/bin/bash
+set -eu
+[[ "$*" == *https://api.github.com/repos/sohamb117/omp-pet/releases/latest* ]]
+[[ ${PET_TEST_RELEASE_FAIL:-0} == 0 ]] || exit 22
+jq -n --arg tag "${PET_TEST_TAG:-v${PET_TEST_LATEST:-0.1.2}}" '{tag_name: $tag, draft: false, prerelease: false}'
+''')
         self.tool('mise', '''#!/bin/bash
 set -eu
 [[ "$1" == -C ]]; shift 2
@@ -65,12 +70,13 @@ case "$1" in
     case "$2" in
       list) [[ "$3" == --json ]]; cat "$PET_TEST_PLUGIN_STATE" ;;
       install)
-        [[ "$3" == github:sohamb117/omp-pet#v0.1.2 ]]
+        [[ "$3" == "github:sohamb117/omp-pet#v${PET_TEST_LATEST:-0.1.2}" ]]
         [[ ${PET_TEST_INSTALL_FAIL:-0} == 0 ]] || exit 9
         printf 'install\\n' >> "$PET_TEST_LOG"
         mkdir -p "$PET_TEST_PLUGIN_DIR/extension"
         touch "$PET_TEST_PLUGIN_DIR/extension/installer.ts"
-        jq -n --arg path "$PET_TEST_PLUGIN_DIR" '{npm: [{name: "omp-pet", version: "0.1.2", path: $path, enabled: true}]}' > "$PET_TEST_PLUGIN_STATE" ;;
+        jq -n --arg path "$PET_TEST_PLUGIN_DIR" --arg version "${PET_TEST_LATEST:-0.1.2}" '{npm: [{name: "omp-pet", version: $version, path: $path, enabled: true}]}' > "$PET_TEST_PLUGIN_STATE"
+        jq -n --arg source "$3" '{dependencies: {"omp-pet": $source}}' > "$PET_TEST_PLUGIN_DIR/../../package.json" ;;
       *) exit 99 ;;
     esac ;;
   *) exit 99 ;;
@@ -122,14 +128,40 @@ printf '%s\\n' "$PET_TEST_APP"
         self.assertFalse(self.app.exists())
         self.assertFalse(self.log.exists())
         self.assertEqual(self.plugins.read_bytes(), before)
-        self.assertIn('github:sohamb117/omp-pet#v0.1.2', result.stdout)
+        self.assertIn('github:sohamb117/omp-pet#<latest-release-tag>', result.stdout)
         self.assertNotIn('cargo', result.stdout)
 
-    def test_existing_other_version_is_preserved(self):
+    def test_custom_source_is_preserved(self):
         existing = {'npm': [{'name': 'omp-pet', 'version': '0.0.9', 'path': str(self.root / 'personal-plugin'), 'enabled': True}]}
         self.plugins.write_text(json.dumps(existing))
         self.run_script()
         self.assertEqual(json.loads(self.plugins.read_text()), existing)
+        self.assertFalse(self.log.exists())
+
+    def test_new_release_updates_official_plugin_and_matching_app(self):
+        self.run_script()
+        self.env['PET_TEST_LATEST'] = '0.2.0'
+        new_app = self.home / 'Library/Application Support/OMP Pet/apps/0.2.0/OMP Pet.app'
+        self.env['PET_TEST_APP'] = str(new_app)
+        self.run_script()
+        self.assertEqual(json.loads(self.plugins.read_text())['npm'][0]['version'], '0.2.0')
+        self.assertTrue((new_app / 'Contents/MacOS/omp-pet').is_file())
+        self.assertTrue(self.app.is_dir())  # Previous version is preserved.
+        self.run_script()
+        self.assertEqual(self.log.read_text(), 'install\ndownload\ninstall\ndownload\n')
+        self.run_script('doctor-omp-pet.sh')
+
+    def test_release_failure_does_not_install_or_downgrade(self):
+        self.run_script()
+        before = self.plugins.read_bytes()
+        self.env['PET_TEST_RELEASE_FAIL'] = '1'
+        self.run_script(success=False)
+        self.assertEqual(self.plugins.read_bytes(), before)
+        self.assertEqual(self.log.read_text(), 'install\ndownload\n')
+
+    def test_invalid_release_tag_is_rejected_before_install(self):
+        self.env['PET_TEST_TAG'] = 'not-a-release'
+        self.run_script(success=False)
         self.assertFalse(self.log.exists())
 
     def test_disabled_plugin_is_preserved(self):

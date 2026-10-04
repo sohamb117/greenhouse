@@ -44,37 +44,36 @@ elif ! load_brew; then
     trap - EXIT
     load_brew || fail 'Homebrew was installed but could not be found.'
 fi
-# No upgrades or removal of packages on a rerun; no services are started.
-export HOMEBREW_NO_AUTO_UPDATE=1
-run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile"
-if [[ $CLI_ONLY == 0 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.apps"; fi
-if [[ $EXTRAS == 1 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.optional"; fi
-if [[ $DATA_TOOLS == 1 ]]; then run brew bundle install --no-upgrade --file="$BOOTSTRAP_ROOT/Brewfile.data"; fi
+# Refresh only the selected stack; do not remove packages or start services.
+unset HOMEBREW_NO_AUTO_UPDATE HOMEBREW_BUNDLE_NO_UPGRADE
+run brew update
+run brew bundle install --file="$BOOTSTRAP_ROOT/Brewfile"
+if [[ $CLI_ONLY == 0 ]]; then run brew bundle install --file="$BOOTSTRAP_ROOT/Brewfile.apps"; fi
+if [[ $EXTRAS == 1 ]]; then run brew bundle install --file="$BOOTSTRAP_ROOT/Brewfile.optional"; fi
+if [[ $DATA_TOOLS == 1 ]]; then run brew bundle install --file="$BOOTSTRAP_ROOT/Brewfile.data"; fi
 log 'Configure shell, mise and Worktrunk with backups.'
-run uv python install 3.13
-run uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py" --skip-omp
+if [[ $DRY_RUN == 1 ]]; then
+  log '[dry-run] Resolve newest stable CPython from updated uv download metadata.'
+  bootstrap_python='<latest-stable-python>'
+else
+  bootstrap_python="$(latest_python)"
+fi
+run uv python install --no-bin "$bootstrap_python"
+run uv run --no-project --managed-python --python "$bootstrap_python" python "$BOOTSTRAP_ROOT/scripts/configure.py" --skip-omp
 log 'Install OMP, language runtimes and agent compatibility CLIs through mise.'
 # Neutral cwd avoids inheriting the bootstrap checkout as a project config.
 run mise -C "$HOME" trust "${XDG_CONFIG_HOME:-$HOME/.config}/mise/conf.d/50-mac-dev-bootstrap.toml"
-run mise -C "$HOME" install bun github:can1357/oh-my-pi node go rust mr-boxington npm:greptile npm:typescript npm:typescript-language-server npm:pyright
+run mise -C "$HOME" install bun@latest github:can1357/oh-my-pi@latest node@latest go@latest rust@latest mr-boxington@latest npm:greptile@latest npm:typescript@latest npm:typescript-language-server@latest npm:pyright@latest
+run mise -C "$HOME" upgrade --no-prune bun@latest github:can1357/oh-my-pi@latest node@latest go@latest rust@latest mr-boxington@latest npm:greptile@latest npm:typescript@latest npm:typescript-language-server@latest npm:pyright@latest
 run mise -C "$HOME" reshim
 log 'Install shared OMP settings, instructions and CKG MCP defaults.'
-run mise -C "$HOME" exec -- uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/configure.py" --omp-only
+run mise -C "$HOME" exec -- uv run --no-project --managed-python --python "$bootstrap_python" python "$BOOTSTRAP_ROOT/scripts/configure.py" --omp-only
 if [[ $CLI_ONLY == 0 ]]; then
   run "$BOOTSTRAP_ROOT/scripts/install-omp-pet.sh"
 fi
-log 'Install CKG, preferring a release binary and allowing a source build.'
-if [[ $DRY_RUN == 1 ]]; then
-  run mise -C "$HOME" exec -- cargo binstall --no-confirm --disable-strategies quick-install ckg@0.1.5
-else
-  export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$HOME/.local/bin:$PATH"
-  if command -v ckg >/dev/null 2>&1; then
-    printf 'CKG already available: %s (preserved).\n' "$(command -v ckg)"
-  else
-    # cargo-binstall can fall back to compiling if a platform artifact is absent.
-    mise -C "$HOME" exec -- cargo binstall --no-confirm --disable-strategies quick-install ckg@0.1.5
-  fi
-fi
+log 'Install or upgrade CKG to the newest crate release, preferring binaries.'
+# No PATH-based skip: an older installation must not suppress updates.
+run mise -C "$HOME" exec -- cargo binstall --no-confirm --force --disable-strategies quick-install ckg
 if [[ $DRY_RUN == 1 ]]; then
   run "$BOOTSTRAP_ROOT/scripts/doctor.sh" --cli-only
 else

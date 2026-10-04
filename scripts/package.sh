@@ -6,4 +6,4 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/common.sh"
 mkdir -p "$(dirname -- "$1")"
 # Enumerate checked-in files so credentials and untracked local files stay out.
 git -C "$BOOTSTRAP_ROOT" rev-parse --is-inside-work-tree >/dev/null
-uv run --no-project --python 3.13 python "$BOOTSTRAP_ROOT/scripts/package.py" "$1"
+uv run --no-project --managed-python --python "$(latest_python)" python "$BOOTSTRAP_ROOT/scripts/package.py" "$1"

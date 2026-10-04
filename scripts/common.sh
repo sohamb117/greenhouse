@@ -21,3 +21,11 @@ load_brew() {
     return 1
   fi
 }
+
+# Resolve at invocation time, not from installed Python or a checked-in version.
+latest_python() {
+  uv python list --only-downloads --output-format json | jq -er '
+    [.[] | select(.implementation == "cpython" and .variant == "default")
+      | select(.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))]
+    | max_by(.version | split(".") | map(tonumber)) | .version // error("No stable CPython download available")'
+}

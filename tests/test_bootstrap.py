@@ -250,6 +250,26 @@ class ScriptTests(unittest.TestCase):
             self.assertEqual((target / 'AGENTS.md').read_text(), 'Existing instructions\n')
             self.assertEqual((target / '.omp/mcp.json').read_text(), '{"mcpServers": {}}\n')
 
+    def test_python_selector_chooses_newest_stable_default_cpython(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            uv = Path(temporary) / 'uv'
+            releases = [
+                {'implementation': 'cpython', 'variant': 'default', 'version': '3.9.99'},
+                {'implementation': 'cpython', 'variant': 'default', 'version': '3.100.1'},
+                {'implementation': 'cpython', 'variant': 'default', 'version': '4.0.0rc1'},
+                {'implementation': 'cpython', 'variant': 'freethreaded', 'version': '4.0.0'},
+                {'implementation': 'pypy', 'variant': 'default', 'version': '5.0.0'},
+            ]
+            uv.write_text("#!/bin/sh\ncat <<'JSON'\n" + json.dumps(releases) + '\nJSON\n')
+            uv.chmod(0o755)
+            env = dict(os.environ, PATH=temporary + ':' + os.environ['PATH'])
+            command = ['bash', '-c', 'source "$1"; latest_python', 'bash', str(ROOT / 'scripts/common.sh')]
+            result = subprocess.run(command, env=env, capture_output=True, text=True, check=True)
+            self.assertEqual(result.stdout.strip(), '3.100.1')
+            uv.write_text('#!/bin/sh\necho "[]"\n')
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+
     def test_capture_preserves_status_and_full_output(self):
         with tempfile.TemporaryDirectory() as temporary:
             env = dict(os.environ, XDG_STATE_HOME=temporary)
